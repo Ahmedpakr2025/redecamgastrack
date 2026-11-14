@@ -1,0 +1,3693 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redecam GasTrack | نظام إدارة وتتبع أسطوانات الغاز والفواتير</title>
+  <!-- Client-side PDF & OCR Engines -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    /* =========================================================================
+       1. DESIGN TOKENS & BASE RESET
+       ========================================================================= */
+    :root {
+      --bg-app: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f8fafc;
+      --bg-dark: #0f172a;
+      --bg-dark-2: #1e293b;
+      --border-color: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-light: #94a3b8;
+      --primary: #1d4ed8;
+      --primary-hover: #1e40af;
+      --primary-soft: #eff6ff;
+      --emerald: #059669;
+      --emerald-soft: #ecfdf5;
+      --emerald-border: #a7f3d0;
+      --amber: #d97706;
+      --amber-soft: #fffbeb;
+      --amber-border: #fde68a;
+      --danger: #dc2626;
+      --danger-soft: #fef2f2;
+      --danger-border: #fecaca;
+      --purple: #7c3aed;
+      --purple-soft: #f5f3ff;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.06);
+      --shadow-lg: 0 20px 40px rgba(15, 23, 42, 0.16);
+      --font-ar: 'Segoe UI', 'Tahoma', 'Cairo', 'Tajawal', system-ui, -apple-system, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100%;
+      font-family: var(--font-ar);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, select, textarea {
+      font-family: inherit;
+      font-size: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: none;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #e2e8f0; }
+    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+    /* =========================================================================
+       2. TYPOGRAPHY & UTILITIES
+       ========================================================================= */
+    .text-xs { font-size: 0.78rem; }
+    .text-sm { font-size: 0.88rem; }
+    .text-base { font-size: 1rem; }
+    .text-lg { font-size: 1.15rem; }
+    .text-xl { font-size: 1.35rem; }
+    .text-2xl { font-size: 1.65rem; }
+    .font-bold { font-weight: 700; }
+    .font-extrabold { font-weight: 800; }
+    .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .text-muted { color: var(--text-muted); }
+    .text-primary { color: var(--primary); }
+    .text-emerald { color: var(--emerald); }
+    .text-amber { color: var(--amber); }
+    .text-danger { color: var(--danger); }
+    .text-center { text-align: center; }
+    .text-left { text-align: left; }
+
+    /* =========================================================================
+       3. BUTTONS, INPUTS, BADGES & CARDS
+       ========================================================================= */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-weight: 700;
+      font-size: 0.85rem;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-emerald { background: var(--emerald); color: #fff; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22); }
+    .btn-emerald:hover:not(:disabled) { background: #047857; }
+    .btn-dark { background: var(--bg-dark); color: #fff; }
+    .btn-dark:hover:not(:disabled) { background: var(--bg-dark-2); }
+    .btn-danger { background: var(--danger); color: #fff; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22); }
+    .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+    .btn-outline { background: #fff; color: var(--text-main); border: 1px solid var(--border-strong); }
+    .btn-outline:hover:not(:disabled) { background: var(--bg-subtle); border-color: var(--primary); }
+    .btn-soft-primary { background: var(--primary-soft); color: var(--primary); border: 1px solid #bfdbfe; }
+    .btn-soft-primary:hover:not(:disabled) { background: #dbeafe; }
+    .btn-soft-emerald { background: var(--emerald-soft); color: var(--emerald); border: 1px solid var(--emerald-border); }
+    .btn-soft-emerald:hover:not(:disabled) { background: #d1fae5; }
+    .btn-soft-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid var(--danger-border); }
+    .btn-soft-danger:hover:not(:disabled) { background: #fee2e2; }
+    .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: var(--radius-sm); }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label { font-size: 0.8rem; font-weight: 700; color: #334155; }
+    .form-control {
+      width: 100%;
+      padding: 10px 13px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-strong);
+      background: #fff;
+      color: var(--text-main);
+      font-size: 0.88rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.14);
+    }
+
+    .password-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .password-wrap .form-control {
+      padding-left: 44px;
+    }
+    .password-toggle-btn {
+      position: absolute;
+      left: 10px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 4px 6px;
+      border-radius: 6px;
+    }
+    .password-toggle-btn:hover {
+      background: #f1f5f9;
+      color: var(--text-main);
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-xs);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+    }
+    .badge-emerald { background: var(--emerald-soft); color: #065f46; border: 1px solid var(--emerald-border); }
+    .badge-danger { background: var(--danger-soft); color: #991b1b; border: 1px solid var(--danger-border); }
+    .badge-amber { background: var(--amber-soft); color: #92400e; border: 1px solid var(--amber-border); }
+    .badge-primary { background: var(--primary-soft); color: #1e40af; border: 1px solid #bfdbfe; }
+    .badge-purple { background: var(--purple-soft); color: #5b21b6; border: 1px solid #ddd6fe; }
+    .badge-slate { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+
+    .user-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.73rem;
+      font-weight: 700;
+      color: #475569;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 3px 9px;
+      border-radius: 999px;
+    }
+
+    .alert-box {
+      padding: 12px 15px;
+      border-radius: var(--radius-md);
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .alert-amber {
+      background: var(--amber-soft);
+      border: 1px solid var(--amber-border);
+      color: #92400e;
+    }
+    .alert-blue {
+      background: var(--primary-soft);
+      border: 1px solid #bfdbfe;
+      color: #1e3a8a;
+    }
+
+    /* =========================================================================
+       4. TABLES
+       ========================================================================= */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+      font-size: 0.82rem;
+    }
+    table.data-table thead th {
+      background: var(--bg-dark);
+      color: #fff;
+      font-weight: 700;
+      padding: 11px 12px;
+      white-space: nowrap;
+    }
+    table.data-table tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+    table.data-table tbody tr:hover {
+      background: #f8fafc;
+    }
+    table.data-table tfoot td {
+      background: #f1f5f9;
+      font-weight: 800;
+      padding: 10px 12px;
+      border-top: 2px solid var(--border-strong);
+    }
+
+    /* =========================================================================
+       5. LOGIN SCREEN (CLEAN ENTERPRISE PORTAL - NO HINTS OR QUICK-LOGIN)
+       ========================================================================= */
+    #login-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: linear-gradient(135deg, #090d16 0%, #0f172a 55%, #172554 100%);
+    }
+    .login-container {
+      width: 100%;
+      max-width: 920px;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      background: #fff;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .login-brand-panel {
+      background: #070a10;
+      color: #fff;
+      padding: 40px 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 24px;
+    }
+    .login-logo-box {
+      background: #000000;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: var(--radius-lg);
+      padding: 22px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    .login-form-panel {
+      padding: 40px 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    /* =========================================================================
+       6. APP SHELL (SIDEBAR + MAIN AREA)
+       ========================================================================= */
+    #app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+    #sidebar {
+      width: 275px;
+      background: var(--bg-dark);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      z-index: 30;
+      transition: transform 0.25s ease;
+    }
+    .sidebar-logo-area {
+      padding: 18px 16px;
+      background: #05070c;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .sidebar-user-card {
+      margin: 14px 12px 6px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid #334155;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+    }
+    .nav-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 14px;
+      border-radius: var(--radius-md);
+      color: #cbd5e1;
+      font-weight: 700;
+      font-size: 0.86rem;
+      text-align: right;
+      transition: all 0.15s ease;
+    }
+    .nav-btn:hover {
+      background: #1e293b;
+      color: #fff;
+    }
+    .nav-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(29, 78, 216, 0.35);
+    }
+    .sidebar-footer {
+      padding: 14px 12px;
+      border-top: 1px solid #1e293b;
+    }
+
+    #main-wrapper {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    #main-content {
+      padding: 24px;
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* =========================================================================
+       7. RESPONSIVE GRIDS & DOCUMENT VIEWERS
+       ========================================================================= */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .split-layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+
+    .kpi-card {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px;
+      box-shadow: var(--shadow-xs);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .kpi-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .upload-dropzone {
+      border: 2px dashed #93c5fd;
+      background: #eff6ff;
+      border-radius: var(--radius-lg);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      display: block;
+      transition: all 0.18s ease;
+    }
+    .upload-dropzone:hover {
+      border-color: var(--primary);
+      background: #dbeafe;
+    }
+    .preview-stage {
+      position: relative;
+      min-height: 240px;
+      background: #0f172a;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-strong);
+      margin-top: 12px;
+    }
+    .preview-stage img {
+      max-width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+    }
+    @keyframes scanBeam {
+      0% { top: 4%; }
+      50% { top: 94%; }
+      100% { top: 4%; }
+    }
+    .scan-laser {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #10b981;
+      box-shadow: 0 0 14px 3px rgba(16, 185, 129, 0.85);
+      animation: scanBeam 1.6s ease-in-out infinite;
+    }
+
+    /* Modals & Toasts */
+    #modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(3px);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    #modal-backdrop.open { display: flex; }
+    .modal-dialog {
+      background: #fff;
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+    .modal-header {
+      padding: 16px 22px;
+      background: var(--bg-subtle);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-body {
+      padding: 20px 22px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal-footer {
+      padding: 14px 22px;
+      background: var(--bg-subtle);
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    #toast-container {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 390px;
+      width: calc(100% - 36px);
+      pointer-events: none;
+    }
+    .toast-item {
+      pointer-events: auto;
+      padding: 13px 16px;
+      border-radius: var(--radius-md);
+      color: #fff;
+      font-size: 0.82rem;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    #mobile-menu-btn { display: none; }
+    #sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      z-index: 25;
+    }
+
+    @media (max-width: 1024px) {
+      .split-layout { grid-template-columns: 1fr; }
+      .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 820px) {
+      .login-container { grid-template-columns: 1fr; }
+      #mobile-menu-btn { display: inline-flex; }
+      #sidebar {
+        position: fixed;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        transform: translateX(100%);
+      }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-overlay.open { display: block; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      #main-content { padding: 16px; }
+    }
+
+    /* =========================================================================
+       8. A4 PRINT STYLESHEET (HIDDEN ON SCREEN, SHOWN ONLY ON PRINT)
+       ========================================================================= */
+    .print-header,
+    .print-footer {
+      display: none;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      #login-screen,
+      #sidebar,
+      #sidebar-overlay,
+      #topbar,
+      #toast-container,
+      #modal-backdrop,
+      .no-print {
+        display: none !important;
+      }
+      #app-shell,
+      #main-wrapper,
+      #main-content {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .print-header {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #0f172a;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+      .print-footer {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        text-align: center;
+        margin-top: 32px;
+        padding-top: 14px;
+        border-top: 1px solid #94a3b8;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        padding: 12px !important;
+        margin-bottom: 14px !important;
+      }
+      table.data-table th,
+      table.data-table td {
+        border: 1px solid #94a3b8 !important;
+        padding: 6px 8px !important;
+        font-size: 0.78rem !important;
+      }
+      table.data-table thead th {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification Stack -->
+  <div id="toast-container"></div>
+
+  <!-- Reusable Modal Backdrop -->
+  <div id="modal-backdrop">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title" class="text-base font-extrabold">عنوان النافذة</h3>
+        <button type="button" onclick="UI.closeModal()" class="btn btn-sm btn-outline">إغلاق ✕</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       1. LOGIN SCREEN (CLEAN ENTERPRISE LOGIN WITH OFFICIAL REDECAM LOGO)
+       ======================================================================= -->
+  <section id="login-screen">
+    <div class="login-container">
+      <!-- Brand Panel -->
+      <div class="login-brand-panel">
+        <div>
+          <div id="login-logo-slot" class="login-logo-box"></div>
+          <h1 class="text-xl font-extrabold" style="margin-top: 24px; line-height: 1.5;">
+            نظام إدارة وتتبع أسطوانات الغاز والفواتير
+          </h1>
+          <p class="text-sm" style="color: #cbd5e1; margin-top: 10px;">
+            البوابة الداخلية لشركة <strong>ريديكام مصر ليمتد (Redecam Egypt Limited)</strong> لإدارة أذون الاستلام والتسليم، قراءة بيانات المستندات تلقائياً (OCR)، مطابقة فواتير المشتريات الإلكترونية، ومتابعة عهدة المواقع وحسابات الموردين.
+          </p>
+        </div>
+
+        <div style="border-top: 1px solid #1e293b; padding-top: 16px; display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; color: #94a3b8;">
+          <div>• إدارة أذون استلام وتسليم أسطوانات الغاز والراكات لكل موقع</div>
+          <div>• مطابقة تلقائية لفواتير المشتريات مع استثناء الراكات</div>
+          <div>• متابعة كشف حساب الموردين وسندات الدفع والشيكات</div>
+          <div>• نظام صلاحيات متكامل وتقارير معتمدة قابلة للطباعة</div>
+        </div>
+      </div>
+
+      <!-- Login Form Panel -->
+      <div class="login-form-panel">
+        <div>
+          <span class="badge badge-primary">Redecam GasTrack Enterprise</span>
+          <h2 class="text-xl font-extrabold" style="margin-top: 10px;">تسجيل الدخول إلى النظام</h2>
+          <p class="text-xs text-muted" style="margin-top: 4px;">يرجى إدخال اسم المستخدم وكلمة المرور المخصصة لحسابك</p>
+        </div>
+
+        <form onsubmit="Auth.handleLogin(event)" autocomplete="off" style="display: flex; flex-direction: column; gap: 16px;">
+          <div class="form-group">
+            <label class="form-label" for="login-username">اسم المستخدم (Username)</label>
+            <input id="login-username" type="text" class="form-control" required autocomplete="off" placeholder="أدخل اسم المستخدم" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="login-password">كلمة المرور (Password)</label>
+            <div class="password-wrap">
+              <input id="login-password" type="password" class="form-control" required autocomplete="new-password" placeholder="أدخل كلمة المرور" />
+              <button type="button" onclick="Auth.togglePasswordVisibility()" class="password-toggle-btn" title="إظهار / إخفاء كلمة المرور">
+                <span id="pwd-eye-label">إظهار</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="login-error" class="hidden" style="background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 700;">
+            اسم المستخدم أو كلمة المرور غير صحيحة
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; margin-top: 4px;">
+            <span>تسجيل الدخول</span>
+            <span>&larr;</span>
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- =======================================================================
+       2. MAIN APPLICATION SHELL
+       ======================================================================= -->
+  <div id="app-shell" class="hidden">
+    <div id="sidebar-overlay" onclick="UI.toggleSidebar(false)"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-logo-area">
+        <div id="sidebar-logo-slot"></div>
+      </div>
+
+      <div class="sidebar-user-card">
+        <div id="sidebar-user-name" class="text-sm font-extrabold" style="color: #fff;">مدير النظام</div>
+        <div id="sidebar-user-role" class="text-xs font-bold" style="color: #34d399; margin-top: 2px;">مدير النظام</div>
+      </div>
+
+      <nav id="sidebar-nav" class="sidebar-nav"></nav>
+
+      <div class="sidebar-footer">
+        <button type="button" onclick="Auth.logout()" class="btn btn-danger" style="width: 100%;">
+          <span>تسجيل الخروج</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Column -->
+    <div id="main-wrapper">
+      <!-- Top Bar -->
+      <header id="topbar">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <button type="button" id="mobile-menu-btn" onclick="UI.toggleSidebar(true)" class="btn btn-outline btn-sm">☰ القائمة</button>
+          <div>
+            <h1 id="page-title" class="text-lg font-extrabold">لوحة التحكم الرئيسية</h1>
+            <p id="page-subtitle" class="text-xs text-muted">ملخص الأرصدة، المطابقات التلقائية، وعهدة المواقع</p>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" id="db-status-btn" onclick="DB.syncNow()" class="badge badge-emerald" style="cursor: pointer; padding: 7px 13px;">
+            <span>●</span>
+            <span id="db-status-text">متصل بـ Firebase RTDB</span>
+            <span>↻</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Official A4 Print Header (Hidden on screen, visible ONLY when printing) -->
+      <div class="print-header">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div id="print-logo-slot"></div>
+          <div>
+            <h1 class="text-lg font-extrabold">شركة ريديكام مصر ليمتد — Redecam Egypt Limited</h1>
+            <p class="text-xs text-muted">تقرير نظام إدارة وتتبع أسطوانات الغاز الصناعية والطبية والفواتير (GasTrack)</p>
+            <p id="print-filter-summary" class="text-xs font-bold" style="margin-top: 4px;"></p>
+          </div>
+        </div>
+        <div class="text-left text-xs">
+          <div><strong>تاريخ الطباعة:</strong> <span id="print-date"></span></div>
+          <div style="margin-top: 4px;"><strong>طُبع بواسطة:</strong> <span id="print-user"></span></div>
+        </div>
+      </div>
+
+      <!-- Active Tab View Container -->
+      <main id="main-content"></main>
+
+      <!-- Official A4 Print Signatures Footer -->
+      <div class="print-footer">
+        <div>
+          <p style="margin-bottom: 34px;">توقيع أمين المخزن</p>
+          <div style="border-top: 1px solid #64748b; margin: 0 24px; padding-top: 4px;">الاسم والتوقيع</div>
+        </div>
+        <div>
+          <p style="margin-bottom: 34px;">اعتماد مدير المشروعات</p>
+          <div style="border-top: 1px solid #64748b; margin: 0 24px; padding-top: 4px;">الاسم والتوقيع</div>
+        </div>
+        <div>
+          <p style="margin-bottom: 34px;">مراجعة الحسابات / المدير المالي</p>
+          <div style="border-top: 1px solid #64748b; margin: 0 24px; padding-top: 4px;">الاسم والتوقيع</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       SINGLE APPLICATION JAVASCRIPT ENGINE
+       ======================================================================= -->
+  <script>
+    /**
+     * 1. OFFICIAL REDECAM ENVIRONMENTAL SOLUTIONS SVG LOGO
+     */
+    function renderRedecamLogo(theme) {
+      const isLight = theme === 'light';
+      const fg = isLight ? '#090d16' : '#ffffff';
+      const subFg = isLight ? '#334155' : '#cbd5e1';
+      const width = isLight ? 150 : 185;
+      return `
+        <svg width="${width}" viewBox="0 0 280 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="REDECAM ENVIRONMENTAL SOLUTIONS">
+          <path d="M104 10 C119 28, 119 46, 104 64" stroke="${fg}" stroke-width="6.5" stroke-linecap="round"/>
+          <path d="M124 6 C137 26, 137 48, 124 68" stroke="${fg}" stroke-width="6.5" stroke-linecap="round"/>
+          <path d="M156 6 C143 26, 143 48, 156 68" stroke="${fg}" stroke-width="6.5" stroke-linecap="round"/>
+          <path d="M176 10 C161 28, 161 46, 176 64" stroke="${fg}" stroke-width="6.5" stroke-linecap="round"/>
+          <text x="184" y="18" fill="${fg}" font-family="Arial, sans-serif" font-size="8" font-weight="bold">TM</text>
+          <text x="140" y="96" text-anchor="middle" fill="${fg}" font-family="'Segoe UI', Arial, sans-serif" font-size="31" font-weight="800" letter-spacing="4.5">REDECAM</text>
+          <text x="266" y="79" fill="${fg}" font-family="Arial, sans-serif" font-size="7.5" font-weight="bold">TM</text>
+          <text x="140" y="116" text-anchor="middle" fill="${subFg}" font-family="'Segoe UI', Arial, sans-serif" font-size="11.2" font-weight="700" letter-spacing="2.4">ENVIRONMENTAL SOLUTIONS</text>
+        </svg>
+      `;
+    }
+
+    /**
+     * 2. DOMAIN CONSTANTS & GRANULAR PERMISSIONS
+     */
+    const GAS_TYPES = [
+      { code: 'O2', name: 'أكسجين (O2)', short: 'أكسجين', unit: 'أسطوانة', isRack: false },
+      { code: 'C2H2', name: 'أسيتيلين (C2H2)', short: 'أسيتيلين', unit: 'أسطوانة', isRack: false },
+      { code: 'AR', name: 'أرجون (AR)', short: 'أرجون', unit: 'أسطوانة', isRack: false },
+      { code: 'N2', name: 'نيتروجين (N2)', short: 'نيتروجين', unit: 'أسطوانة', isRack: false },
+      { code: 'CO2', name: 'ثاني أكسيد الكربون (CO2)', short: 'ثاني أكسيد', unit: 'أسطوانة', isRack: false },
+      { code: 'C4H10', name: 'بوتجاز (C4H10)', short: 'بوتجاز', unit: 'أسطوانة', isRack: false },
+      { code: 'RACK', name: 'راك / صندوق (رصيد موقع فقط)', short: 'راك / صندوق', unit: 'راك', isRack: true }
+    ];
+
+    const ALL_PERMISSIONS = [
+      { key: 'add_voucher', label: 'تسجيل وقراءة أذون الاستلام والتسليم', desc: 'رفع صور الأذون وتشغيل قارئ OCR وإدخال حركات الأسطوانات' },
+      { key: 'manage_sites', label: 'إدارة المواقع والمشاريع (إضافة / تعديل / حذف)', desc: 'إضافة وتعديل وحذف مواقع العمل لمتابعة عهدة الأسطوانات بكل موقع' },
+      { key: 'manage_suppliers', label: 'إدارة الموردين والأرصدة الافتتاحية (مدير النظام)', desc: 'إضافة وتعديل وحذف الموردين وتحديد أرصدتهم الافتتاحية' },
+      { key: 'upload_invoice', label: 'رفع وقراءة فواتير المشتريات', desc: 'رفع فواتير الضرائب الإلكترونية PDF/صور واستخراج بنودها تلقائياً' },
+      { key: 'match_docs', label: 'المطابقة التلقائية بين الفواتير والأذون', desc: 'مراجعة الفروقات واعتماد تطابق الكميات (مع استثناء الراكات)' },
+      { key: 'manage_payments', label: 'إدارة سندات الدفع والشيكات', desc: 'إرفاق الشيكات وإيصالات السداد ومتابعة كشف حساب الموردين' },
+      { key: 'view_reports', label: 'التقارير والفلترة وطباعة A4', desc: 'الوصول لمركز التقارير والبحث التفصيلي وطباعة الكشوفات' },
+      { key: 'manage_users', label: 'إدارة المستخدمين ومصفوفة الصلاحيات', desc: 'إنشاء حسابات وتعديل بياناتها وتخصيص صلاحيات كل مستخدم' },
+      { key: 'reset_system', label: 'تصفير النظام بالكامل (مدير النظام)', desc: 'مسح جميع الحركات والبيانات وإعادة النظام للحالة النظيفة' },
+      { key: 'db_settings', label: 'إعدادات وربط قاعدة البيانات', desc: 'تعديل رابط Firebase أو التبديل لقاعدة بيانات أخرى مستقبلاً' }
+    ];
+
+    const ROLE_PRESETS = {
+      admin: {
+        label: 'مدير النظام',
+        permissions: ALL_PERMISSIONS.map(p => p.key)
+      },
+      store: {
+        label: 'أمين المخزن',
+        permissions: ['add_voucher', 'manage_sites', 'view_reports']
+      },
+      pm: {
+        label: 'مدير المشروعات',
+        permissions: ['upload_invoice', 'match_docs', 'view_reports']
+      },
+      finance: {
+        label: 'المحاسب / المدير المالي',
+        permissions: ['manage_payments', 'match_docs', 'view_reports']
+      }
+    };
+
+    /**
+     * 3. SINGLE DEFAULT ADMIN ACCOUNT (NO OTHER PRE-SEEDED USERS)
+     */
+    function createDefaultAdminUser() {
+      return {
+        id: 'u_admin_root',
+        username: 'admin',
+        password: '1234',
+        fullName: 'مدير النظام',
+        role: 'admin',
+        roleLabel: 'مدير النظام',
+        active: true,
+        permissions: ALL_PERMISSIONS.map(p => p.key)
+      };
+    }
+
+    /**
+     * 4. PLUGGABLE DATABASE ADAPTER (FIREBASE RTDB + LOCAL STORAGE + CUSTOM API)
+     */
+    function normalizeFirebaseUrl(rawUrl) {
+      if (!rawUrl) return 'https://gas-track-7b0f3-default-rtdb.firebaseio.com';
+      const clean = rawUrl.trim();
+      const consoleMatch = clean.match(/console\.firebase\.google\.com\/project\/[^/]+\/database\/([^/]+)/);
+      if (consoleMatch && consoleMatch[1]) {
+        return 'https://' + consoleMatch[1] + '.firebaseio.com';
+      }
+      return clean.replace(/\/+$/, '');
+    }
+
+    const DB = {
+      STORAGE_CFG_KEY: 'redecam_gastrack_cfg_v3',
+      STORAGE_DATA_KEY: 'redecam_gastrack_data_v3',
+      config: {
+        provider: 'firebase',
+        firebaseUrl: 'https://gas-track-7b0f3-default-rtdb.firebaseio.com',
+        firebaseToken: '',
+        customApiUrl: '',
+        customApiKey: ''
+      },
+      isConnected: false,
+      state: {
+        users: [],
+        sites: [],
+        suppliers: [],
+        vouchers: [],
+        invoices: [],
+        payments: [],
+        auditLogs: []
+      },
+
+      loadConfig() {
+        try {
+          const saved = localStorage.getItem(this.STORAGE_CFG_KEY);
+          if (saved) this.config = { ...this.config, ...JSON.parse(saved) };
+        } catch (e) {
+          console.warn('Config load fallback:', e);
+        }
+      },
+
+      saveConfig(newCfg) {
+        this.config = { ...this.config, ...newCfg };
+        this.config.firebaseUrl = normalizeFirebaseUrl(this.config.firebaseUrl);
+        localStorage.setItem(this.STORAGE_CFG_KEY, JSON.stringify(this.config));
+      },
+
+      createCleanState(keepUsers = false) {
+        return {
+          users: keepUsers && Array.isArray(this.state.users) && this.state.users.length > 0
+            ? this.state.users
+            : [createDefaultAdminUser()],
+          sites: [],
+          suppliers: [],
+          vouchers: [],
+          invoices: [],
+          payments: [],
+          auditLogs: []
+        };
+      },
+
+      logAction(actionText) {
+        const userStr = Auth.currentUser ? Auth.currentUser.fullName : 'مدير النظام';
+        const now = new Date();
+        const ts = now.toISOString().split('T')[0] + ' ' + now.toTimeString().slice(0, 5);
+        if (!Array.isArray(this.state.auditLogs)) this.state.auditLogs = [];
+        this.state.auditLogs.unshift({
+          id: 'log_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+          timestamp: ts,
+          action: actionText,
+          user: userStr
+        });
+        if (this.state.auditLogs.length > 150) this.state.auditLogs.length = 150;
+      },
+
+      _endpointUrl() {
+        if (this.config.provider === 'custom_api') {
+          return this.config.customApiUrl;
+        }
+        const base = normalizeFirebaseUrl(this.config.firebaseUrl);
+        const token = this.config.firebaseToken ? '?auth=' + encodeURIComponent(this.config.firebaseToken) : '';
+        return base + '/gastrack_v3.json' + token;
+      },
+
+      async init() {
+        this.loadConfig();
+        const localRaw = localStorage.getItem(this.STORAGE_DATA_KEY);
+        if (localRaw) {
+          try {
+            const parsed = JSON.parse(localRaw);
+            this.state = {
+              users: Array.isArray(parsed.users) && parsed.users.length > 0 ? parsed.users : [createDefaultAdminUser()],
+              sites: Array.isArray(parsed.sites) ? parsed.sites : [],
+              suppliers: Array.isArray(parsed.suppliers) ? parsed.suppliers : [],
+              vouchers: Array.isArray(parsed.vouchers) ? parsed.vouchers : [],
+              invoices: Array.isArray(parsed.invoices) ? parsed.invoices : [],
+              payments: Array.isArray(parsed.payments) ? parsed.payments : [],
+              auditLogs: Array.isArray(parsed.auditLogs) ? parsed.auditLogs : []
+            };
+          } catch (e) {
+            this.state = this.createCleanState(false);
+          }
+        } else {
+          this.state = this.createCleanState(false);
+          localStorage.setItem(this.STORAGE_DATA_KEY, JSON.stringify(this.state));
+        }
+        await this.syncFromRemote(true);
+      },
+
+      async syncFromRemote(silent = false) {
+        if (this.config.provider === 'local') {
+          this.isConnected = true;
+          this.updateBadge();
+          return;
+        }
+        try {
+          const url = this._endpointUrl();
+          if (!url) throw new Error('رابط قاعدة البيانات غير محدد');
+          const res = await fetch(url, { method: 'GET' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const remote = await res.json();
+          if (remote && typeof remote === 'object' && Array.isArray(remote.users) && remote.users.length > 0) {
+            this.state = {
+              users: remote.users,
+              sites: Array.isArray(remote.sites) ? remote.sites : [],
+              suppliers: Array.isArray(remote.suppliers) ? remote.suppliers : [],
+              vouchers: Array.isArray(remote.vouchers) ? remote.vouchers : [],
+              invoices: Array.isArray(remote.invoices) ? remote.invoices : [],
+              payments: Array.isArray(remote.payments) ? remote.payments : [],
+              auditLogs: Array.isArray(remote.auditLogs) ? remote.auditLogs : []
+            };
+            localStorage.setItem(this.STORAGE_DATA_KEY, JSON.stringify(this.state));
+          } else {
+            await fetch(url, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.state)
+            });
+          }
+          this.isConnected = true;
+          this.updateBadge();
+          if (!silent) UI.toast('تمت المزامنة بنجاح مع قاعدة البيانات السحابية', 'success');
+        } catch (err) {
+          this.isConnected = false;
+          this.updateBadge();
+          if (!silent) UI.toast('تعذر الاتصال بالسحابة — تم الحفظ في النسخة المحلية الاحتياطية', 'warning');
+        }
+      },
+
+      async commit() {
+        localStorage.setItem(this.STORAGE_DATA_KEY, JSON.stringify(this.state));
+        if (this.config.provider === 'local') {
+          this.isConnected = true;
+          this.updateBadge();
+          return;
+        }
+        try {
+          const url = this._endpointUrl();
+          if (!url) throw new Error('No URL');
+          const res = await fetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.state)
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          this.isConnected = true;
+        } catch (e) {
+          this.isConnected = false;
+        }
+        this.updateBadge();
+      },
+
+      async syncNow() {
+        await this.commit();
+        await this.syncFromRemote(false);
+        if (Auth.currentUser) AppRouter.render();
+      },
+
+      updateBadge() {
+        const btn = document.getElementById('db-status-btn');
+        const txt = document.getElementById('db-status-text');
+        if (!btn || !txt) return;
+        if (this.config.provider === 'local') {
+          btn.className = 'badge badge-slate';
+          txt.textContent = 'تخزين محلي';
+        } else if (this.isConnected) {
+          btn.className = 'badge badge-emerald';
+          txt.textContent = this.config.provider === 'firebase' ? 'متصل بـ Firebase RTDB' : 'متصل بـ Custom API';
+        } else {
+          btn.className = 'badge badge-amber';
+          txt.textContent = 'محلي (بانتظار مزامنة Firebase)';
+        }
+      },
+
+      async resetSystem(resetUsersAlso = false) {
+        const keepUsers = !resetUsersAlso;
+        this.state = this.createCleanState(keepUsers);
+        if (resetUsersAlso) {
+          Auth.currentUser = this.state.users[0];
+          sessionStorage.setItem('redecam_logged_uid_v3', Auth.currentUser.id);
+        }
+        this.logAction('تم تنفيذ تصفير شامل للنظام وإعادة تهيئة البيانات');
+        await this.commit();
+      }
+    };
+
+    /**
+     * 5. AUTHENTICATION & PERMISSION ENGINE
+     */
+    const Auth = {
+      currentUser: null,
+
+      togglePasswordVisibility() {
+        const inp = document.getElementById('login-password');
+        const lbl = document.getElementById('pwd-eye-label');
+        if (!inp || !lbl) return;
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          lbl.textContent = 'إخفاء';
+        } else {
+          inp.type = 'password';
+          lbl.textContent = 'إظهار';
+        }
+      },
+
+      handleLogin(e) {
+        e.preventDefault();
+        const u = document.getElementById('login-username').value.trim().toLowerCase();
+        const p = document.getElementById('login-password').value.trim();
+        this.login(u, p);
+      },
+
+      login(username, password) {
+        const errBox = document.getElementById('login-error');
+        const user = DB.state.users.find(x => x.username.toLowerCase() === username && x.password === password);
+        if (!user) {
+          errBox.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
+          errBox.classList.remove('hidden');
+          return;
+        }
+        if (!user.active) {
+          errBox.textContent = 'هذا الحساب موقوف حالياً. يرجى مراجعة مدير النظام.';
+          errBox.classList.remove('hidden');
+          return;
+        }
+        errBox.classList.add('hidden');
+        this.currentUser = user;
+        sessionStorage.setItem('redecam_logged_uid_v3', user.id);
+
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('app-shell').classList.remove('hidden');
+        this.refreshHeaderUser();
+
+        AppRouter.initNav();
+        AppRouter.navigate('dashboard');
+        UI.toast('مرحباً بك، ' + user.fullName, 'success');
+      },
+
+      refreshHeaderUser() {
+        if (!this.currentUser) return;
+        const fresh = DB.state.users.find(u => u.id === this.currentUser.id);
+        if (fresh) this.currentUser = fresh;
+        document.getElementById('sidebar-user-name').textContent = this.currentUser.fullName;
+        document.getElementById('sidebar-user-role').textContent = this.currentUser.roleLabel;
+      },
+
+      logout() {
+        this.currentUser = null;
+        sessionStorage.removeItem('redecam_logged_uid_v3');
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+        document.getElementById('app-shell').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+      },
+
+      can(permKey) {
+        if (!this.currentUser) return false;
+        const fresh = DB.state.users.find(u => u.id === this.currentUser.id);
+        if (fresh) this.currentUser = fresh;
+        return Array.isArray(this.currentUser.permissions) && this.currentUser.permissions.includes(permKey);
+      }
+    };
+
+    /**
+     * 6. UI HELPERS (TOASTS, MODALS, FORMATTING)
+     */
+    const UI = {
+      toast(msg, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const bg = {
+          success: '#059669',
+          error: '#dc2626',
+          warning: '#d97706',
+          info: '#0f172a'
+        }[type] || '#0f172a';
+
+        const item = document.createElement('div');
+        item.className = 'toast-item';
+        item.style.background = bg;
+        item.innerHTML = '<span>●</span><span>' + msg + '</span>';
+        container.appendChild(item);
+
+        setTimeout(() => {
+          item.style.opacity = '0';
+          item.style.transform = 'translateY(-6px)';
+          setTimeout(() => item.remove(), 260);
+        }, 3800);
+      },
+
+      openModal(title, bodyHtml, footerHtml = '') {
+        document.getElementById('modal-title').textContent = title;
+        document.getElementById('modal-body').innerHTML = bodyHtml;
+        document.getElementById('modal-footer').innerHTML = footerHtml ||
+          '<button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إغلاق</button>';
+        document.getElementById('modal-backdrop').classList.add('open');
+      },
+
+      closeModal() {
+        document.getElementById('modal-backdrop').classList.remove('open');
+      },
+
+      toggleSidebar(open) {
+        const sb = document.getElementById('sidebar');
+        const ov = document.getElementById('sidebar-overlay');
+        if (open) {
+          sb.classList.add('open');
+          ov.classList.add('open');
+        } else {
+          sb.classList.remove('open');
+          ov.classList.remove('open');
+        }
+      },
+
+      fmtMoney(val) {
+        return Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ج.م';
+      },
+
+      gasName(code) {
+        const g = GAS_TYPES.find(x => x.code === code);
+        return g ? g.name : code;
+      },
+
+      siteName(id) {
+        const s = DB.state.sites.find(x => x.id === id);
+        return s ? (s.code ? '[' + s.code + '] ' + s.name : s.name) : 'موقع غير محدد';
+      },
+
+      supplierName(id) {
+        const s = DB.state.suppliers.find(x => x.id === id);
+        return s ? s.name : 'مورد غير محدد';
+      }
+    };
+
+    /**
+     * 7. ANALYTICS & 2-WAY INVOICE RECONCILIATION ENGINE (RACKS EXCLUDED)
+     */
+    const Analytics = {
+      getSiteBalances() {
+        const map = {};
+        DB.state.sites.forEach(s => {
+          map[s.id] = {
+            siteId: s.id,
+            siteCode: s.code || '',
+            siteName: s.name,
+            notes: s.notes || '',
+            createdBy: s.createdBy || '',
+            byGas: {},
+            totalCylinders: 0,
+            racksCount: 0
+          };
+          GAS_TYPES.forEach(g => (map[s.id].byGas[g.code] = 0));
+        });
+
+        const sorted = [...DB.state.vouchers].sort((a, b) => a.date.localeCompare(b.date));
+        const initialized = new Set();
+
+        sorted.forEach(v => {
+          if (!map[v.siteId]) {
+            map[v.siteId] = {
+              siteId: v.siteId,
+              siteCode: '',
+              siteName: UI.siteName(v.siteId),
+              notes: '',
+              createdBy: v.createdBy || '',
+              byGas: {},
+              totalCylinders: 0,
+              racksCount: 0
+            };
+            GAS_TYPES.forEach(g => (map[v.siteId].byGas[g.code] = 0));
+          }
+          (v.items || []).forEach(item => {
+            const key = v.siteId + '_' + item.gasCode;
+            if (!initialized.has(key)) {
+              map[v.siteId].byGas[item.gasCode] = (map[v.siteId].byGas[item.gasCode] || 0) + Number(item.prior || 0);
+              initialized.add(key);
+            }
+            const delta = Number(item.receivedFull || 0) - Number(item.returnedEmpty || 0) - Number(item.returnedDamaged || 0);
+            map[v.siteId].byGas[item.gasCode] = (map[v.siteId].byGas[item.gasCode] || 0) + delta;
+          });
+        });
+
+        Object.values(map).forEach(entry => {
+          let cylSum = 0;
+          GAS_TYPES.forEach(g => {
+            const q = entry.byGas[g.code] || 0;
+            if (g.isRack) entry.racksCount = q;
+            else cylSum += q;
+          });
+          entry.totalCylinders = cylSum;
+        });
+
+        return map;
+      },
+
+      getTotalByGas() {
+        const siteBals = this.getSiteBalances();
+        const totals = {};
+        GAS_TYPES.forEach(g => (totals[g.code] = 0));
+        Object.values(siteBals).forEach(site => {
+          GAS_TYPES.forEach(g => {
+            totals[g.code] += site.byGas[g.code] || 0;
+          });
+        });
+        return totals;
+      },
+
+      /**
+       * Reconciles Purchase Invoice items against Delivery Voucher items.
+       * RACK ('راك / صندوق') is completely excluded from invoice matching and
+       * tracked strictly as Site Custody ('رصيد الموقع فقط').
+       */
+      reconcileInvoice(invoiceObj) {
+        const vNo = (invoiceObj.linkedVoucherNo || '').trim();
+        let voucher = null;
+
+        if (vNo) {
+          voucher = DB.state.vouchers.find(v => v.voucherNo.replace(/^0+/, '') === vNo.replace(/^0+/, ''));
+        }
+        if (!voucher && invoiceObj.supplierId && invoiceObj.date) {
+          voucher = DB.state.vouchers.find(v => v.supplierId === invoiceObj.supplierId && v.date === invoiceObj.date);
+        }
+
+        if (!voucher) {
+          return {
+            status: 'unlinked',
+            voucher: null,
+            summary: 'لم يتم العثور على إذن استلام مرتبط بنفس الرقم أو التاريخ للمطابقة',
+            variances: [],
+            ignoredRacks: 0
+          };
+        }
+
+        const invGasTotals = {};
+        (invoiceObj.items || []).forEach(it => {
+          if (it.gasCode && it.gasCode !== 'SERVICE' && it.gasCode !== 'RACK') {
+            invGasTotals[it.gasCode] = (invGasTotals[it.gasCode] || 0) + Number(it.qty || 0);
+          }
+        });
+
+        const vouGasTotals = {};
+        let ignoredRacks = 0;
+        (voucher.items || []).forEach(it => {
+          if (it.gasCode === 'RACK') {
+            ignoredRacks += Number(it.receivedFull || 0);
+          } else if (it.gasCode && Number(it.receivedFull || 0) > 0) {
+            vouGasTotals[it.gasCode] = (vouGasTotals[it.gasCode] || 0) + Number(it.receivedFull || 0);
+          }
+        });
+
+        const allGasCodes = new Set([...Object.keys(invGasTotals), ...Object.keys(vouGasTotals)]);
+        const variances = [];
+        let hasMismatch = false;
+
+        allGasCodes.forEach(code => {
+          const invQty = invGasTotals[code] || 0;
+          const vouQty = vouGasTotals[code] || 0;
+          const diff = invQty - vouQty;
+          if (diff !== 0) hasMismatch = true;
+          variances.push({
+            gasCode: code,
+            gasName: UI.gasName(code),
+            invoiceQty: invQty,
+            voucherQty: vouQty,
+            diff
+          });
+        });
+
+        const rackBadgeText = 'تم استثناء الراكات من المطابقة (تُحتسب كرصيد موقع فقط)';
+
+        if (hasMismatch) {
+          return {
+            status: 'mismatch',
+            voucher,
+            summary: 'تنبيه: يوجد فرق في كميات الغازات بين الفاتورة وإذن الاستلام رقم #' + voucher.voucherNo + ' — ' + rackBadgeText,
+            variances,
+            ignoredRacks
+          };
+        }
+
+        return {
+          status: 'matched',
+          voucher,
+          summary: 'متطابق تماماً ✅ — ' + rackBadgeText + ' — مع إذن الاستلام رقم #' + voucher.voucherNo + ' (' + UI.siteName(voucher.siteId) + ')',
+          variances,
+          ignoredRacks
+        };
+      },
+
+      getSupplierFinancials(supplierId) {
+        const supplier = DB.state.suppliers.find(s => s.id === supplierId);
+        const opening = Number(supplier ? supplier.openingBalance : 0);
+        const invs = DB.state.invoices.filter(i => i.supplierId === supplierId);
+        const pays = DB.state.payments.filter(p => p.supplierId === supplierId);
+
+        const totalInvoiced = invs.reduce((s, i) => s + Number(i.netTotal || 0), 0);
+        const totalPaid = pays.reduce((s, p) => s + Number(p.amount || 0), 0);
+        const balanceDue = opening + totalInvoiced - totalPaid;
+
+        return { opening, totalInvoiced, totalPaid, balanceDue, invoices: invs, payments: pays };
+      }
+    };
+
+    /**
+     * 8. CLIENT-SIDE OCR & PDF DOCUMENT READER (TESSERACT.JS & PDF.JS)
+     */
+    const DocumentReader = {
+      async scanVoucherFile(inputEl) {
+        const file = inputEl.files && inputEl.files[0];
+        if (!file) return;
+
+        const img = document.getElementById('voucher-preview-img');
+        const ph = document.getElementById('voucher-preview-placeholder');
+        const beam = document.getElementById('voucher-scan-beam');
+        const status = document.getElementById('voucher-ocr-status');
+
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          const dataUrl = ev.target.result;
+          if (img) { img.src = dataUrl; img.classList.remove('hidden'); }
+          if (ph) ph.classList.add('hidden');
+          if (beam) beam.classList.remove('hidden');
+          if (status) {
+            status.classList.remove('hidden');
+            status.innerHTML = '⏳ جاري قراءة بيانات إذن الاستلام تلقائياً (OCR)...';
+          }
+
+          try {
+            if (window.Tesseract) {
+              const result = await Tesseract.recognize(dataUrl, 'ara+eng');
+              const text = (result && result.data && result.data.text) ? result.data.text : '';
+              this.applyParsedVoucherText(text);
+              if (status) {
+                status.innerHTML = '✅ اكتملت قراءة صورة الإذن بنجاح. يرجى مراجعة الأرقام في الجدول وتأكيد الموقع والمورد.';
+              }
+            } else {
+              throw new Error('OCR offline');
+            }
+          } catch (err) {
+            if (status) {
+              status.innerHTML = '✅ تم إرفاق صورة الإذن للمراجعة البصرية. يرجى استكمال البيانات في النموذج.';
+            }
+          } finally {
+            if (beam) beam.classList.add('hidden');
+          }
+        };
+        reader.readAsDataURL(file);
+      },
+
+      applyParsedVoucherText(text) {
+        if (!text) return;
+        const noMatch = text.match(/\b00\d{3,6}\b/) || text.match(/(?:رقم|اذن|إذن)\s*[:#-]?\s*(\d{3,7})/);
+        if (noMatch) {
+          const vInput = document.getElementById('v-no');
+          if (vInput && !vInput.value) vInput.value = noMatch[1] || noMatch[0];
+        }
+        const dateMatch = text.match(/20\d{2}[-/]\d{1,2}[-/]\d{1,2}/);
+        if (dateMatch) {
+          const normDate = dateMatch[0].replace(/\//g, '-');
+          const dInput = document.getElementById('v-date');
+          if (dInput) dInput.value = normDate;
+        }
+      },
+
+      async scanInvoiceFile(inputEl) {
+        const file = inputEl.files && inputEl.files[0];
+        if (!file) return;
+
+        const beam = document.getElementById('invoice-scan-beam');
+        const status = document.getElementById('invoice-ocr-status');
+        if (beam) beam.classList.remove('hidden');
+        if (status) {
+          status.classList.remove('hidden');
+          status.innerHTML = '⏳ جاري قراءة بيانات فاتورة المشتريات وتشغيل المطابقة التلقائية...';
+        }
+
+        try {
+          let extractedText = '';
+          if (file.type === 'application/pdf' && window.pdfjsLib) {
+            const ph = document.getElementById('invoice-preview-placeholder');
+            const img = document.getElementById('invoice-preview-img');
+            if (img) img.classList.add('hidden');
+            if (ph) {
+              ph.classList.remove('hidden');
+              ph.innerHTML = '<div class="text-sm font-extrabold" style="color:#fff;">📄 ملف الفاتورة الإلكترونية: ' + file.name + '</div>';
+            }
+            const arrayBuf = await file.arrayBuffer();
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+            for (let p = 1; p <= pdf.numPages; p++) {
+              const page = await pdf.getPage(p);
+              const content = await page.getTextContent();
+              extractedText += ' ' + content.items.map(it => it.str).join(' ');
+            }
+          } else if (file.type.startsWith('image/')) {
+            const dataUrl = await new Promise((resolve) => {
+              const r = new FileReader();
+              r.onload = (e) => resolve(e.target.result);
+              r.readAsDataURL(file);
+            });
+            const img = document.getElementById('invoice-preview-img');
+            const ph = document.getElementById('invoice-preview-placeholder');
+            if (img) { img.src = dataUrl; img.classList.remove('hidden'); }
+            if (ph) ph.classList.add('hidden');
+            if (window.Tesseract) {
+              const res = await Tesseract.recognize(dataUrl, 'ara+eng');
+              extractedText = (res && res.data && res.data.text) ? res.data.text : '';
+            }
+          }
+
+          this.applyParsedInvoiceText(extractedText);
+          InvoiceView.recalculateTotals();
+          InvoiceView.runLiveReconciliation();
+
+          if (status) {
+            status.innerHTML = '✅ تمت قراءة الفاتورة وتشغيل المطابقة التلقائية (مع استثناء الراكات — رصيد موقع فقط).';
+          }
+        } catch (err) {
+          if (status) {
+            status.innerHTML = '✅ تم إرفاق الفاتورة. يرجى مراجعة البيانات وتشغيل المطابقة.';
+          }
+        } finally {
+          if (beam) beam.classList.add('hidden');
+        }
+      },
+
+      applyParsedInvoiceText(text) {
+        if (!text) return;
+        const uuidMatch = text.match(/[A-Z0-9]{20,30}/);
+        if (uuidMatch) {
+          const uInp = document.getElementById('inv-uuid');
+          if (uInp && !uInp.value) uInp.value = uuidMatch[0];
+        }
+        const internalMatch = text.match(/(?:الرقم الداخلي|Internal ID)\s*[:]?\s*(\d+)/i);
+        if (internalMatch) {
+          const nInp = document.getElementById('inv-no');
+          if (nInp && !nInp.value) nInp.value = internalMatch[1];
+        }
+      }
+    };
+
+    /**
+     * 9. APPLICATION ROUTER & SIDEBAR
+     */
+    const AppRouter = {
+      activeTab: 'dashboard',
+      routes: [
+        { id: 'dashboard', label: 'لوحة التحكم الرئيسية', subtitle: 'ملخص الأرصدة، المطابقات التلقائية، وسجل حركات المستخدمين', icon: '📊', perm: null },
+        { id: 'vouchers', label: 'أذون الاستلام والتسليم', subtitle: 'قراءة أذون الأسطوانات وتحديث رصيد كل موقع', icon: '🧾', perm: 'add_voucher' },
+        { id: 'invoices', label: 'فواتير المشتريات والمطابقة', subtitle: 'قراءة الفواتير ومطابقتها (مع استثناء الراكات)', icon: '📑', perm: 'upload_invoice' },
+        { id: 'sites', label: 'أرصدة وإدارة المواقع', subtitle: 'متابعة عهدة الأسطوانات والراكات وإدارة مواقع العمل', icon: '📍', perm: null },
+        { id: 'suppliers', label: 'الموردون وسندات الدفع', subtitle: 'كشف حساب الموردين، الأرصدة الافتتاحية، والشيكات', icon: '💳', perm: null },
+        { id: 'reports', label: 'التقارير والفلترة والطباعة', subtitle: 'بحث دقيق برقم الإذن أو الفاتورة أو المستخدم وطباعة A4', icon: '🖨️', perm: 'view_reports' },
+        { id: 'users', label: 'المستخدمون والصلاحيات', subtitle: 'إدارة حسابات الموظفين، مصفوفة الصلاحيات، وتصفير النظام', icon: '🛡️', perm: 'manage_users' },
+        { id: 'database', label: 'إعدادات قاعدة البيانات', subtitle: 'ربط Firebase Realtime Database أو التبديل المستقبلي', icon: '🗄️', perm: 'db_settings' }
+      ],
+
+      initNav() {
+        const nav = document.getElementById('sidebar-nav');
+        nav.innerHTML = this.routes
+          .filter(r => !r.perm || Auth.can(r.perm))
+          .map(r => `
+            <button type="button" onclick="AppRouter.navigate('${r.id}')" data-route="${r.id}" class="nav-btn">
+              <span>${r.icon}</span>
+              <span>${r.label}</span>
+            </button>
+          `).join('');
+      },
+
+      navigate(routeId) {
+        const route = this.routes.find(r => r.id === routeId) || this.routes[0];
+        if (route.perm && !Auth.can(route.perm)) {
+          UI.toast('ليس لديك صلاحية للوصول إلى هذه الشاشة', 'error');
+          return;
+        }
+        this.activeTab = route.id;
+        document.getElementById('page-title').textContent = route.label;
+        document.getElementById('page-subtitle').textContent = route.subtitle;
+
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.route === route.id);
+        });
+
+        UI.toggleSidebar(false);
+        this.render();
+      },
+
+      render() {
+        const container = document.getElementById('main-content');
+        if (!container) return;
+        switch (this.activeTab) {
+          case 'dashboard': container.innerHTML = DashboardView.render(); break;
+          case 'vouchers': container.innerHTML = VoucherView.render(); VoucherView.init(); break;
+          case 'invoices': container.innerHTML = InvoiceView.render(); InvoiceView.init(); break;
+          case 'sites': container.innerHTML = SitesView.render(); break;
+          case 'suppliers': container.innerHTML = SuppliersView.render(); break;
+          case 'reports': container.innerHTML = ReportsView.render(); ReportsView.applyFilters(); break;
+          case 'users': container.innerHTML = UsersView.render(); break;
+          case 'database': container.innerHTML = DatabaseView.render(); break;
+        }
+      }
+    };
+
+    /**
+     * 10. VIEW 1: DASHBOARD
+     */
+    const DashboardView = {
+      render() {
+        const totalsByGas = Analytics.getTotalByGas();
+        const totalCylinders = GAS_TYPES.filter(g => !g.isRack).reduce((s, g) => s + (totalsByGas[g.code] || 0), 0);
+        const totalRacks = totalsByGas.RACK || 0;
+        const siteBalances = Object.values(Analytics.getSiteBalances());
+
+        const matchedCount = DB.state.invoices.filter(i => i.matchStatus === 'matched').length;
+        const mismatchCount = DB.state.invoices.filter(i => i.matchStatus === 'mismatch').length;
+
+        let totalSupplierDue = 0;
+        DB.state.suppliers.forEach(s => {
+          totalSupplierDue += Analytics.getSupplierFinancials(s.id).balanceDue;
+        });
+
+        const setupAlerts = [];
+        if (DB.state.suppliers.length === 0) {
+          setupAlerts.push('لم يتم إضافة موردين بعد — يقوم مدير النظام بإضافة الموردين وأرصدتهم الافتتاحية من شاشة (الموردون وسندات الدفع).');
+        }
+        if (DB.state.sites.length === 0) {
+          setupAlerts.push('لم يتم إضافة مواقع عمل بعد — يقوم أمين المخزن أو مدير النظام بإضافة المواقع من شاشة (أرصدة وإدارة المواقع).');
+        }
+
+        return `
+          ${setupAlerts.length > 0 ? `
+            <div class="alert-box alert-amber">
+              <div>
+                <div class="font-extrabold">📋 خطوات بدء التشغيل للنظام النظيف:</div>
+                ${setupAlerts.map(a => '<div style="margin-top:4px;">• ' + a + '</div>').join('')}
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                ${Auth.can('manage_suppliers') ? '<button type="button" onclick="AppRouter.navigate(\'suppliers\')" class="btn btn-dark btn-sm">+ إضافة الموردين</button>' : ''}
+                ${Auth.can('manage_sites') ? '<button type="button" onclick="AppRouter.navigate(\'sites\')" class="btn btn-primary btn-sm">+ إضافة المواقع</button>' : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- KPI Cards -->
+          <div class="grid-4">
+            <div class="kpi-card">
+              <div>
+                <div class="text-xs font-bold text-muted">إجمالي عهدة الأسطوانات</div>
+                <div class="text-2xl font-extrabold" style="margin-top: 4px;">${totalCylinders} <span class="text-xs text-muted">أسطوانة</span></div>
+                <div class="text-xs font-bold text-emerald" style="margin-top: 4px;">+ ${totalRacks} راك / صندوق (رصيد موقع فقط)</div>
+              </div>
+              <div class="kpi-icon" style="background: #eff6ff; color: #1d4ed8; font-size: 1.4rem;">🧪</div>
+            </div>
+
+            <div class="kpi-card">
+              <div>
+                <div class="text-xs font-bold text-muted">أذون الاستلام والتسليم</div>
+                <div class="text-2xl font-extrabold" style="margin-top: 4px;">${DB.state.vouchers.length} <span class="text-xs text-muted">إذن</span></div>
+                <div class="text-xs font-bold text-primary" style="margin-top: 4px;">موزعة على ${DB.state.sites.length} مواقع</div>
+              </div>
+              <div class="kpi-icon" style="background: #ecfdf5; color: #059669; font-size: 1.4rem;">🧾</div>
+            </div>
+
+            <div class="kpi-card">
+              <div>
+                <div class="text-xs font-bold text-muted">مطابقة الفواتير بالأذون</div>
+                <div class="text-2xl font-extrabold" style="margin-top: 4px;">${matchedCount} <span class="text-xs text-emerald">متطابقة</span></div>
+                <div class="text-xs font-bold ${mismatchCount > 0 ? 'text-danger' : 'text-muted'}" style="margin-top: 4px;">
+                  ${mismatchCount > 0 ? '⚠️ يوجد ' + mismatchCount + ' فاتورة بها فرق' : 'الراكات مستثناة تلقائياً'}
+                </div>
+              </div>
+              <div class="kpi-icon" style="background: #fffbeb; color: #d97706; font-size: 1.4rem;">⚖️</div>
+            </div>
+
+            <div class="kpi-card">
+              <div>
+                <div class="text-xs font-bold text-muted">صافي المستحق للموردين</div>
+                <div class="text-xl font-extrabold" style="margin-top: 4px;">${UI.fmtMoney(totalSupplierDue)}</div>
+                <div class="text-xs font-bold" style="color: #7c3aed; margin-top: 4px;">شامل الأرصدة الافتتاحية والسداد</div>
+              </div>
+              <div class="kpi-icon" style="background: #f5f3ff; color: #7c3aed; font-size: 1.4rem;">💳</div>
+            </div>
+          </div>
+
+          <!-- Site Custody Table & Audit Trail -->
+          <div class="grid-2">
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 class="text-base font-extrabold">عهدة الأسطوانات والراكات حسب الموقع</h3>
+                <button type="button" onclick="AppRouter.navigate('sites')" class="btn btn-soft-primary btn-sm">إدارة المواقع &larr;</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>الموقع / المشروع</th>
+                      <th class="text-center">أكسجين O2</th>
+                      <th class="text-center">أسيتيلين C2H2</th>
+                      <th class="text-center">أرجون AR</th>
+                      <th class="text-center">راك (موقع فقط)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${siteBalances.length === 0
+                      ? '<tr><td colspan="5" class="text-center text-muted font-bold" style="padding:22px;">لا توجد مواقع مسجلة بعد</td></tr>'
+                      : siteBalances.map(s => `
+                        <tr>
+                          <td class="font-bold">${s.siteCode ? '[' + s.siteCode + '] ' : ''}${s.siteName}</td>
+                          <td class="text-center font-extrabold text-primary">${s.byGas.O2 || 0}</td>
+                          <td class="text-center font-extrabold text-amber">${s.byGas.C2H2 || 0}</td>
+                          <td class="text-center font-extrabold">${s.byGas.AR || 0}</td>
+                          <td class="text-center"><span class="badge badge-purple">${s.byGas.RACK || 0} راك</span></td>
+                        </tr>
+                      `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Live Audit Log -->
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 class="text-base font-extrabold">سجل الحركات والعمليات (تتبع المستخدمين)</h3>
+                <span class="badge badge-slate">${(DB.state.auditLogs || []).length} حركة</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 10px; max-height: 290px; overflow-y: auto;">
+                ${(DB.state.auditLogs || []).length === 0
+                  ? '<div class="text-center text-xs text-muted font-bold" style="padding: 28px;">لا توجد حركات مسجلة في النظام حتى الآن</div>'
+                  : (DB.state.auditLogs || []).slice(0, 15).map(log => `
+                    <div style="padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 5px;">
+                      <div class="text-xs font-bold">${log.action}</div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                        <span class="user-stamp">👤 بواسطة: ${log.user}</span>
+                        <span class="text-xs text-muted font-mono">${log.timestamp}</span>
+                      </div>
+                    </div>
+                  `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    };
+
+    /**
+     * 11. VIEW 2: DELIVERY VOUCHERS & OCR READER (STOREKEEPER MANAGES SITES, ADMIN MANAGES SUPPLIERS)
+     */
+    const VoucherView = {
+      render() {
+        const hasSuppliers = DB.state.suppliers.length > 0;
+        const hasSites = DB.state.sites.length > 0;
+        const canManageSites = Auth.can('manage_sites');
+
+        return `
+          <!-- Business Rule Explanation -->
+          <div class="alert-box alert-blue">
+            <div class="text-xs" style="max-width: 820px;">
+              <strong class="text-sm font-extrabold" style="display: block; margin-bottom: 3px;">قاعدة احتساب حركة الأسطوانات والراكات:</strong>
+              <span>• <strong>صادر المورد (+):</strong> المعبأ المستلم للموقع (يزيد العهدة) | <strong>وارد المورد (-):</strong> الفارغ المسلّم للمندوب (ينقص العهدة) | <strong>مرتجع (-):</strong> التالف (ينقص العهدة).</span>
+              <span style="display: block; margin-top: 3px;">• <strong>تنبيه:</strong> بند <strong>(راك / صندوق)</strong> يُضاف إلى <strong>رصيد الموقع فقط</strong> ولا يدخل في مطابقة فواتير المشتريات.</span>
+            </div>
+            ${canManageSites ? '<button type="button" onclick="SitesView.openManageSitesModal()" class="btn btn-primary btn-sm">📍 إدارة المواقع (إضافة / تعديل / حذف)</button>' : ''}
+          </div>
+
+          ${!hasSuppliers ? `
+            <div class="alert-box alert-amber">
+              <span>⚠️ لا يوجد موردون مسجلون حالياً — يرجى التواصل مع <strong>مدير النظام</strong> لإضافة الموردين وأرصدتهم الافتتاحية أولاً قبل تسجيل الأذون.</span>
+              ${Auth.can('manage_suppliers') ? '<button type="button" onclick="SuppliersView.openAddSupplierModal()" class="btn btn-dark btn-sm">+ إضافة مورد الآن</button>' : ''}
+            </div>
+          ` : ''}
+
+          ${!hasSites ? `
+            <div class="alert-box alert-amber">
+              <span>⚠️ لا توجد مواقع مسجلة حالياً — يجب إضافة موقع عمل أولاً لتسجيل أذون الاستلام والتسليم عليه.</span>
+              ${canManageSites ? '<button type="button" onclick="SitesView.openAddSiteModal()" class="btn btn-primary btn-sm">+ إضافة موقع جديد</button>' : ''}
+            </div>
+          ` : ''}
+
+          <div class="split-layout">
+            <!-- Left: OCR Document Reader -->
+            <div class="card">
+              <h3 class="text-base font-extrabold" style="margin-bottom: 10px;">📷 قارئ صورة إذن الاستلام (OCR)</h3>
+              <label class="upload-dropzone">
+                <input type="file" accept="image/*" onchange="DocumentReader.scanVoucherFile(this)" class="hidden" />
+                <div class="text-lg">📤</div>
+                <div class="text-xs font-extrabold" style="margin-top: 4px;">اضغط لرفع أو تصوير إذن الاستلام الورقي</div>
+                <div class="text-xs text-muted">قراءة البيانات تلقائياً وعرض الصورة للمراجعة</div>
+              </label>
+
+              <div id="voucher-ocr-status" class="hidden" style="margin-top: 10px; padding: 10px; border-radius: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.78rem; font-weight: 700;"></div>
+
+              <div class="preview-stage">
+                <div id="voucher-scan-beam" class="scan-laser hidden"></div>
+                <img id="voucher-preview-img" src="" alt="معاينة الإذن" class="hidden" />
+                <div id="voucher-preview-placeholder" class="text-center text-xs" style="color: #94a3b8; padding: 20px;">
+                  ستظهر هنا صورة الإذن للمراجعة البصرية
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Voucher Entry Form -->
+            <form onsubmit="VoucherView.saveVoucher(event)" class="card" style="display: flex; flex-direction: column; gap: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                <h3 class="text-base font-extrabold">بيانات إذن الاستلام والتسليم</h3>
+                <span class="user-stamp">👤 بواسطة: ${Auth.currentUser ? Auth.currentUser.fullName : ''}</span>
+              </div>
+
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">رقم الإذن (Voucher No.) *</label>
+                  <input id="v-no" type="text" required class="form-control" placeholder="مثال: 005993" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">تاريخ الإذن *</label>
+                  <input id="v-date" type="date" required class="form-control" />
+                </div>
+
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label class="form-label">اسم الموقع / المشروع *</label>
+                    ${canManageSites ? '<button type="button" onclick="SitesView.openAddSiteModal()" class="text-xs font-extrabold text-primary">+ موقع جديد</button>' : ''}
+                  </div>
+                  <select id="v-site" required onchange="VoucherView.prefillPriorBalances()" class="form-control">
+                    ${hasSites
+                      ? DB.state.sites.map(s => '<option value="' + s.id + '">' + (s.code ? '[' + s.code + '] ' : '') + s.name + '</option>').join('')
+                      : '<option value="">-- يرجى إضافة موقع أولاً --</option>'}
+                  </select>
+                </div>
+              </div>
+
+              <div class="grid-3">
+                <div class="form-group" style="grid-column: span 2;">
+                  <label class="form-label">اسم المورد (يُضاف بواسطة مدير النظام) *</label>
+                  <select id="v-supplier" required class="form-control">
+                    ${hasSuppliers
+                      ? DB.state.suppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
+                      : '<option value="">-- لا يوجد موردون مسجلون (يرجى مراجعة مدير النظام) --</option>'}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">اسم المندوب / السائق</label>
+                  <input id="v-driver" type="text" class="form-control" placeholder="اسم المندوب" />
+                </div>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">رقم السيارة</label>
+                  <input id="v-car" type="text" class="form-control" placeholder="رقم لوحة السيارة" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ملاحظات</label>
+                  <input id="v-notes" type="text" class="form-control" placeholder="ملاحظات الإذن" />
+                </div>
+              </div>
+
+              <!-- Cylinders Table -->
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span class="text-xs font-extrabold">جدول حركة الأسطوانات والراكات:</span>
+                  <button type="button" onclick="VoucherView.addRow()" class="btn btn-outline btn-sm">+ إضافة صنف</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>الصنف</th>
+                        <th class="text-center">رصيد ما قبل</th>
+                        <th class="text-center" style="background:#065f46;">صادر (+ معبأ مستلم)</th>
+                        <th class="text-center" style="background:#92400e;">وارد (- فارغ مسلّم)</th>
+                        <th class="text-center" style="background:#991b1b;">مرتجع (- تالف)</th>
+                        <th class="text-center">رصيد بعد الاستلام</th>
+                        <th class="text-center">حذف</th>
+                      </tr>
+                    </thead>
+                    <tbody id="v-rows-body"></tbody>
+                    <tfoot>
+                      <tr>
+                        <td>الإجمالي</td>
+                        <td id="v-sum-prior" class="text-center">0</td>
+                        <td id="v-sum-rec" class="text-center text-emerald">0</td>
+                        <td id="v-sum-ret" class="text-center text-amber">0</td>
+                        <td id="v-sum-dmg" class="text-center text-danger">0</td>
+                        <td id="v-sum-after" class="text-center text-primary">0</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" ${(!hasSuppliers || !hasSites) ? 'disabled' : ''} class="btn btn-emerald">
+                  💾 حفظ الإذن وتحديث عهدة الموقع
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Vouchers History Table -->
+          <div class="card">
+            <h3 class="text-base font-extrabold" style="margin-bottom: 12px;">سجل أذون الاستلام والتسليم المسجلة (${DB.state.vouchers.length})</h3>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>رقم الإذن</th>
+                    <th>التاريخ</th>
+                    <th>الموقع / المشروع</th>
+                    <th>المورد</th>
+                    <th>ملخص الحركة</th>
+                    <th>المستخدم المنفذ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${DB.state.vouchers.length === 0
+                    ? '<tr><td colspan="6" class="text-center text-muted font-bold" style="padding:22px;">لا توجد أذون مسجلة حتى الآن</td></tr>'
+                    : [...DB.state.vouchers].reverse().map(v => {
+                      const summary = (v.items || []).map(i =>
+                        '<span class="badge ' + (i.gasCode === 'RACK' ? 'badge-purple' : 'badge-slate') + '" style="margin-left:4px;">' +
+                        UI.gasName(i.gasCode).split(' ')[0] + ': +' + i.receivedFull + ' / -' + i.returnedEmpty +
+                        ' (بعد: ' + i.afterBalance + ')</span>'
+                      ).join('');
+                      return `
+                        <tr>
+                          <td class="font-extrabold text-primary">#${v.voucherNo}</td>
+                          <td class="font-bold">${v.date}</td>
+                          <td class="font-bold">${UI.siteName(v.siteId)}</td>
+                          <td>${UI.supplierName(v.supplierId)}</td>
+                          <td>${summary}</td>
+                          <td><span class="user-stamp">👤 بواسطة: ${v.createdBy || 'غير محدد'}</span></td>
+                        </tr>
+                      `;
+                    }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      },
+
+      init() {
+        const today = new Date().toISOString().split('T')[0];
+        const dEl = document.getElementById('v-date');
+        if (dEl && !dEl.value) dEl.value = today;
+
+        this.renderRows([
+          { gasCode: 'O2', prior: 0, receivedFull: 0, returnedEmpty: 0, returnedDamaged: 0 },
+          { gasCode: 'C2H2', prior: 0, receivedFull: 0, returnedEmpty: 0, returnedDamaged: 0 }
+        ]);
+        this.prefillPriorBalances();
+      },
+
+      prefillPriorBalances() {
+        const siteId = document.getElementById('v-site') ? document.getElementById('v-site').value : '';
+        if (!siteId) return;
+        const siteBals = (Analytics.getSiteBalances()[siteId] || {}).byGas || {};
+        document.querySelectorAll('#v-rows-body tr').forEach(tr => {
+          const code = tr.querySelector('.v-gas').value;
+          tr.querySelector('.v-prior').value = siteBals[code] || 0;
+        });
+        this.recalculate();
+      },
+
+      renderRows(rows) {
+        const tbody = document.getElementById('v-rows-body');
+        if (!tbody) return;
+        tbody.innerHTML = rows.map(r => this.rowHtml(r)).join('');
+        this.recalculate();
+      },
+
+      rowHtml(r = { gasCode: 'O2', prior: 0, receivedFull: 0, returnedEmpty: 0, returnedDamaged: 0 }) {
+        const after = Number(r.prior || 0) + Number(r.receivedFull || 0) - Number(r.returnedEmpty || 0) - Number(r.returnedDamaged || 0);
+        return `
+          <tr>
+            <td>
+              <select onchange="VoucherView.onGasChange(this)" class="v-gas form-control" style="padding: 6px 8px; font-size: 0.78rem;">
+                ${GAS_TYPES.map(g => '<option value="' + g.code + '" ' + (g.code === r.gasCode ? 'selected' : '') + '>' + g.name + '</option>').join('')}
+              </select>
+            </td>
+            <td class="text-center"><input type="number" min="0" value="${r.prior || 0}" oninput="VoucherView.recalculate()" class="v-prior form-control text-center" style="width: 68px; padding: 6px;" /></td>
+            <td class="text-center"><input type="number" min="0" value="${r.receivedFull || 0}" oninput="VoucherView.recalculate()" class="v-rec form-control text-center" style="width: 68px; padding: 6px; border-color: #10b981;" /></td>
+            <td class="text-center"><input type="number" min="0" value="${r.returnedEmpty || 0}" oninput="VoucherView.recalculate()" class="v-ret form-control text-center" style="width: 68px; padding: 6px; border-color: #f59e0b;" /></td>
+            <td class="text-center"><input type="number" min="0" value="${r.returnedDamaged || 0}" oninput="VoucherView.recalculate()" class="v-dmg form-control text-center" style="width: 68px; padding: 6px; border-color: #ef4444;" /></td>
+            <td class="text-center"><span class="v-after badge badge-primary">${after}</span></td>
+            <td class="text-center"><button type="button" onclick="this.closest('tr').remove(); VoucherView.recalculate();" class="text-danger font-bold">✕</button></td>
+          </tr>
+        `;
+      },
+
+      onGasChange(sel) {
+        const siteId = document.getElementById('v-site') ? document.getElementById('v-site').value : '';
+        const siteBals = (Analytics.getSiteBalances()[siteId] || {}).byGas || {};
+        sel.closest('tr').querySelector('.v-prior').value = siteBals[sel.value] || 0;
+        this.recalculate();
+      },
+
+      addRow() {
+        document.getElementById('v-rows-body').insertAdjacentHTML('beforeend', this.rowHtml());
+        this.recalculate();
+      },
+
+      recalculate() {
+        let sp = 0, sr = 0, se = 0, sd = 0, sa = 0;
+        document.querySelectorAll('#v-rows-body tr').forEach(tr => {
+          const p = Number(tr.querySelector('.v-prior').value || 0);
+          const r = Number(tr.querySelector('.v-rec').value || 0);
+          const e = Number(tr.querySelector('.v-ret').value || 0);
+          const d = Number(tr.querySelector('.v-dmg').value || 0);
+          const a = p + r - e - d;
+          tr.querySelector('.v-after').textContent = a;
+          sp += p; sr += r; se += e; sd += d; sa += a;
+        });
+        document.getElementById('v-sum-prior').textContent = sp;
+        document.getElementById('v-sum-rec').textContent = sr;
+        document.getElementById('v-sum-ret').textContent = se;
+        document.getElementById('v-sum-dmg').textContent = sd;
+        document.getElementById('v-sum-after').textContent = sa;
+      },
+
+      async saveVoucher(e) {
+        e.preventDefault();
+        const voucherNo = document.getElementById('v-no').value.trim();
+        const date = document.getElementById('v-date').value;
+        const siteId = document.getElementById('v-site').value;
+        const supplierId = document.getElementById('v-supplier').value;
+
+        if (!siteId) {
+          UI.toast('يرجى اختيار الموقع / المشروع أولاً', 'warning');
+          return;
+        }
+        if (!supplierId) {
+          UI.toast('يرجى اختيار المورد أولاً', 'warning');
+          return;
+        }
+
+        const items = [];
+        document.querySelectorAll('#v-rows-body tr').forEach(tr => {
+          const gasCode = tr.querySelector('.v-gas').value;
+          const prior = Number(tr.querySelector('.v-prior').value || 0);
+          const receivedFull = Number(tr.querySelector('.v-rec').value || 0);
+          const returnedEmpty = Number(tr.querySelector('.v-ret').value || 0);
+          const returnedDamaged = Number(tr.querySelector('.v-dmg').value || 0);
+          const afterBalance = prior + receivedFull - returnedEmpty - returnedDamaged;
+          if (receivedFull > 0 || returnedEmpty > 0 || returnedDamaged > 0 || prior > 0) {
+            items.push({ gasCode, prior, receivedFull, returnedEmpty, returnedDamaged, afterBalance });
+          }
+        });
+
+        if (items.length === 0) {
+          UI.toast('يرجى إدخال كمية واحدة على الأقل في جدول الأسطوانات', 'warning');
+          return;
+        }
+
+        const actorName = Auth.currentUser ? Auth.currentUser.fullName : 'مدير النظام';
+        DB.state.vouchers.push({
+          id: 'v_' + Date.now(),
+          voucherNo,
+          date,
+          siteId,
+          supplierId,
+          driverName: document.getElementById('v-driver').value.trim(),
+          carNo: document.getElementById('v-car').value.trim(),
+          notes: document.getElementById('v-notes').value.trim(),
+          createdBy: actorName,
+          items
+        });
+
+        DB.state.invoices.forEach(inv => {
+          if (inv.linkedVoucherNo && inv.linkedVoucherNo.replace(/^0+/, '') === voucherNo.replace(/^0+/, '')) {
+            const rec = Analytics.reconcileInvoice(inv);
+            inv.matchStatus = rec.status;
+            inv.matchDetails = rec.summary;
+          }
+        });
+
+        DB.logAction('تسجيل إذن استلام وتسليم رقم #' + voucherNo + ' لموقع (' + UI.siteName(siteId) + ')');
+        await DB.commit();
+        UI.toast('تم حفظ الإذن #' + voucherNo + ' وتحديث رصيد الموقع بنجاح', 'success');
+        AppRouter.render();
+      }
+    };
+
+    /**
+     * 12. VIEW 3: PURCHASE INVOICES & AUTOMATIC MATCHING (RACKS EXCLUDED)
+     */
+    const InvoiceView = {
+      render() {
+        const hasSuppliers = DB.state.suppliers.length > 0;
+        return `
+          <div class="card" style="background: #0f172a; color: #fff; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+            <div class="text-xs">
+              <strong class="text-sm font-extrabold" style="color: #60a5fa; display: block;">📑 قارئ فواتير الضرائب الإلكترونية والمطابقة التلقائية</strong>
+              <span style="color: #cbd5e1;">تُقارن كميات الغازات بالفاتورة تلقائياً مع إذن الاستلام — <strong>ويتم استثناء الراكات (راك / صندوق) لأنها تُحتسب كرصيد موقع فقط.</strong></span>
+            </div>
+            <span class="badge badge-purple">تم استثناء الراكات من المطابقة (رصيد موقع فقط)</span>
+          </div>
+
+          ${!hasSuppliers ? `
+            <div class="alert-box alert-amber">
+              <span>⚠️ لا يوجد موردون مسجلون حالياً — يرجى التواصل مع <strong>مدير النظام</strong> لإضافة الموردين أولاً قبل تسجيل فواتير المشتريات.</span>
+            </div>
+          ` : ''}
+
+          <div class="split-layout">
+            <!-- Left: PDF/Image Upload -->
+            <div class="card">
+              <h3 class="text-base font-extrabold" style="margin-bottom: 10px;">📤 رفع فاتورة المشتريات (PDF / صورة)</h3>
+              <label class="upload-dropzone">
+                <input type="file" accept="application/pdf,image/*" onchange="DocumentReader.scanInvoiceFile(this)" class="hidden" />
+                <div class="text-lg">📄</div>
+                <div class="text-xs font-extrabold" style="margin-top: 4px;">اختر ملف الفاتورة الإلكترونية (PDF أو صورة)</div>
+                <div class="text-xs text-muted">قراءة البنود والضرائب ومطابقتها تلقائياً</div>
+              </label>
+
+              <div id="invoice-ocr-status" class="hidden" style="margin-top: 10px; padding: 10px; border-radius: 10px; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.78rem; font-weight: 700;"></div>
+
+              <div class="preview-stage">
+                <div id="invoice-scan-beam" class="scan-laser hidden"></div>
+                <img id="invoice-preview-img" src="" alt="معاينة الفاتورة" class="hidden" />
+                <div id="invoice-preview-placeholder" class="text-center text-xs" style="color: #94a3b8; padding: 20px;">
+                  معاينة الفاتورة المرفوعة ستظهر هنا
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Invoice Form & Live Reconciliation -->
+            <form onsubmit="InvoiceView.saveInvoice(event)" class="card" style="display: flex; flex-direction: column; gap: 16px;">
+              <div id="reconciliation-banner" style="padding: 14px 16px; border-radius: 12px; background: #f8fafc; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 700;">
+                ⚖️ ستظهر هنا نتيجة المطابقة التلقائية بين الفاتورة وإذن المخزن (تم استثناء الراكات من المطابقة — تُحتسب كرصيد موقع فقط)
+              </div>
+
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">رقم الفاتورة الداخلي *</label>
+                  <input id="inv-no" type="text" required class="form-control" placeholder="مثال: 1926" />
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label class="form-label">الرقم الإلكتروني (ETA UUID)</label>
+                  <input id="inv-uuid" type="text" class="form-control font-mono" placeholder="الرقم الإلكتروني الموحد للفاتورة" />
+                </div>
+              </div>
+
+              <div class="grid-3">
+                <div class="form-group">
+                  <label class="form-label">تاريخ الفاتورة *</label>
+                  <input id="inv-date" type="date" required onchange="InvoiceView.runLiveReconciliation()" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">المورد *</label>
+                  <select id="inv-supplier" required onchange="InvoiceView.runLiveReconciliation()" class="form-control">
+                    ${hasSuppliers
+                      ? DB.state.suppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')
+                      : '<option value="">-- لا يوجد موردون مسجلون --</option>'}
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">رقم إذن الاستلام للمطابقة *</label>
+                  <input id="inv-linked-voucher" type="text" list="vouchers-datalist" oninput="InvoiceView.runLiveReconciliation()" class="form-control" style="border-color: #2563eb; background: #eff6ff;" placeholder="رقم الإذن" />
+                  <datalist id="vouchers-datalist">
+                    ${DB.state.vouchers.map(v => '<option value="' + v.voucherNo + '">' + UI.siteName(v.siteId) + ' (' + v.date + ')</option>').join('')}
+                  </datalist>
+                </div>
+              </div>
+
+              <!-- Invoice Line Items -->
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span class="text-xs font-extrabold">بنود الفاتورة:</span>
+                  <button type="button" onclick="InvoiceView.addItemRow()" class="btn btn-outline btn-sm">+ إضافة بند</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>التصنيف</th>
+                        <th>الوصف</th>
+                        <th class="text-center">الكمية</th>
+                        <th class="text-center">سعر الوحدة</th>
+                        <th class="text-center">الإجمالي</th>
+                        <th class="text-center">حذف</th>
+                      </tr>
+                    </thead>
+                    <tbody id="inv-items-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Totals -->
+              <div class="grid-4" style="background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                <div>
+                  <div class="text-xs text-muted font-bold">إجمالي المبيعات</div>
+                  <div id="inv-subtotal-display" class="text-sm font-extrabold" style="margin-top: 4px;">0.00 ج.م</div>
+                </div>
+                <div>
+                  <div class="text-xs text-muted font-bold">ضريبة القيمة المضافة (+)</div>
+                  <input id="inv-vat" type="number" step="0.01" value="0" oninput="InvoiceView.recalculateTotals()" class="form-control" style="margin-top: 4px; padding: 6px 8px;" />
+                </div>
+                <div>
+                  <div class="text-xs text-muted font-bold">خصم تحت حساب الضريبة (-)</div>
+                  <input id="inv-wht" type="number" step="0.01" value="0" oninput="InvoiceView.recalculateTotals()" class="form-control" style="margin-top: 4px; padding: 6px 8px;" />
+                </div>
+                <div>
+                  <div class="text-xs text-primary font-bold">صافي الفاتورة المستحق</div>
+                  <div id="inv-net-display" class="text-base font-extrabold text-primary" style="margin-top: 4px;">0.00 ج.م</div>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end;">
+                <button type="submit" ${!hasSuppliers ? 'disabled' : ''} class="btn btn-primary">✔ اعتماد وحفظ الفاتورة</button>
+              </div>
+            </form>
+          </div>
+        `;
+      },
+
+      init() {
+        const today = new Date().toISOString().split('T')[0];
+        const dEl = document.getElementById('inv-date');
+        if (dEl && !dEl.value) dEl.value = today;
+
+        this.renderItems([
+          { gasCode: 'O2', description: 'تعبئة أسطوانة أكسجين', qty: 0, unitPrice: 0 },
+          { gasCode: 'C2H2', description: 'أسطوانة أسيتيلين', qty: 0, unitPrice: 0 }
+        ]);
+        this.recalculateTotals();
+      },
+
+      renderItems(items) {
+        const tbody = document.getElementById('inv-items-body');
+        if (!tbody) return;
+        tbody.innerHTML = items.map(it => this.rowHtml(it)).join('');
+        this.recalculateTotals();
+      },
+
+      rowHtml(it = { gasCode: 'O2', description: '', qty: 1, unitPrice: 0 }) {
+        const lineTotal = Number(it.qty || 0) * Number(it.unitPrice || 0);
+        const billableGases = GAS_TYPES.filter(g => !g.isRack);
+        return `
+          <tr>
+            <td>
+              <select onchange="InvoiceView.runLiveReconciliation()" class="inv-gas form-control" style="padding: 6px 8px; font-size: 0.78rem;">
+                ${billableGases.map(g => '<option value="' + g.code + '" ' + (g.code === it.gasCode ? 'selected' : '') + '>' + g.name + '</option>').join('')}
+                <option value="SERVICE" ${it.gasCode === 'SERVICE' ? 'selected' : ''}>خدمة توصيل / نقل</option>
+              </select>
+            </td>
+            <td><input type="text" value="${it.description || ''}" class="inv-desc form-control" style="padding: 6px 8px; font-size: 0.78rem;" /></td>
+            <td class="text-center"><input type="number" step="0.01" min="0" value="${it.qty || 0}" oninput="InvoiceView.recalculateTotals(); InvoiceView.runLiveReconciliation();" class="inv-qty form-control text-center" style="width: 72px; padding: 6px;" /></td>
+            <td class="text-center"><input type="number" step="0.01" min="0" value="${it.unitPrice || 0}" oninput="InvoiceView.recalculateTotals()" class="inv-price form-control text-center" style="width: 84px; padding: 6px;" /></td>
+            <td class="text-center font-extrabold inv-row-total">${lineTotal.toFixed(2)}</td>
+            <td class="text-center"><button type="button" onclick="this.closest('tr').remove(); InvoiceView.recalculateTotals(); InvoiceView.runLiveReconciliation();" class="text-danger font-bold">✕</button></td>
+          </tr>
+        `;
+      },
+
+      addItemRow() {
+        document.getElementById('inv-items-body').insertAdjacentHTML('beforeend', this.rowHtml());
+        this.recalculateTotals();
+      },
+
+      collectItems() {
+        const items = [];
+        document.querySelectorAll('#inv-items-body tr').forEach(tr => {
+          const gasCode = tr.querySelector('.inv-gas').value;
+          const description = tr.querySelector('.inv-desc').value.trim() || UI.gasName(gasCode);
+          const qty = Number(tr.querySelector('.inv-qty').value || 0);
+          const unitPrice = Number(tr.querySelector('.inv-price').value || 0);
+          items.push({ gasCode, description, qty, unitPrice, total: qty * unitPrice });
+        });
+        return items;
+      },
+
+      recalculateTotals() {
+        let subtotal = 0;
+        document.querySelectorAll('#inv-items-body tr').forEach(tr => {
+          const q = Number(tr.querySelector('.inv-qty').value || 0);
+          const p = Number(tr.querySelector('.inv-price').value || 0);
+          const line = q * p;
+          tr.querySelector('.inv-row-total').textContent = line.toFixed(2);
+          subtotal += line;
+        });
+        const vat = Number(document.getElementById('inv-vat') ? document.getElementById('inv-vat').value : 0);
+        const wht = Number(document.getElementById('inv-wht') ? document.getElementById('inv-wht').value : 0);
+        const net = subtotal + vat - wht;
+        document.getElementById('inv-subtotal-display').textContent = UI.fmtMoney(subtotal);
+        document.getElementById('inv-net-display').textContent = UI.fmtMoney(net);
+        return { subtotal, vat, wht, net };
+      },
+
+      runLiveReconciliation() {
+        const banner = document.getElementById('reconciliation-banner');
+        if (!banner) return { status: 'unlinked', summary: '' };
+
+        const draft = {
+          linkedVoucherNo: document.getElementById('inv-linked-voucher') ? document.getElementById('inv-linked-voucher').value : '',
+          supplierId: document.getElementById('inv-supplier') ? document.getElementById('inv-supplier').value : '',
+          date: document.getElementById('inv-date') ? document.getElementById('inv-date').value : '',
+          items: this.collectItems()
+        };
+
+        const res = Analytics.reconcileInvoice(draft);
+        if (res.status === 'matched') {
+          banner.style.background = '#ecfdf5';
+          banner.style.border = '2px solid #10b981';
+          banner.style.color = '#065f46';
+          banner.innerHTML =
+            '<div class="text-sm font-extrabold" style="margin-bottom: 6px;">' + res.summary + '</div>' +
+            '<div style="display:flex; flex-wrap:wrap; gap:6px;">' +
+            res.variances.map(v => '<span class="badge badge-emerald">' + v.gasName + ': الفاتورة (' + v.invoiceQty + ') = الإذن (' + v.voucherQty + ') ✔</span>').join('') +
+            '<span class="badge badge-purple">تم استثناء الراكات من المطابقة (تُحتسب كرصيد موقع فقط)</span></div>';
+        } else if (res.status === 'mismatch') {
+          banner.style.background = '#fef2f2';
+          banner.style.border = '2px solid #ef4444';
+          banner.style.color = '#991b1b';
+          banner.innerHTML =
+            '<div class="text-sm font-extrabold" style="margin-bottom: 6px;">⚠️ ' + res.summary + '</div>' +
+            '<div style="display:flex; flex-wrap:wrap; gap:6px;">' +
+            res.variances.map(v => '<span class="badge ' + (v.diff === 0 ? 'badge-slate' : 'badge-danger') + '">' + v.gasName + ': فاتورة (' + v.invoiceQty + ') vs إذن (' + v.voucherQty + ')</span>').join('') +
+            '<span class="badge badge-purple">تم استثناء الراكات من المطابقة (تُحتسب كرصيد موقع فقط)</span></div>';
+        } else {
+          banner.style.background = '#fffbeb';
+          banner.style.border = '1px solid #fcd34d';
+          banner.style.color = '#92400e';
+          banner.innerHTML = 'ℹ️ ' + res.summary + ' — <span class="badge badge-purple">تم استثناء الراكات من المطابقة (تُحتسب كرصيد موقع فقط)</span>';
+        }
+        return res;
+      },
+
+      async saveInvoice(e) {
+        e.preventDefault();
+        const invoiceNo = document.getElementById('inv-no').value.trim();
+        const electronicUuid = document.getElementById('inv-uuid').value.trim();
+        const date = document.getElementById('inv-date').value;
+        const supplierId = document.getElementById('inv-supplier').value;
+        if (!supplierId) {
+          UI.toast('يرجى اختيار المورد أولاً', 'warning');
+          return;
+        }
+        const linkedVoucherNo = document.getElementById('inv-linked-voucher').value.trim();
+        const items = this.collectItems();
+        const totals = this.recalculateTotals();
+        const rec = this.runLiveReconciliation();
+        const actorName = Auth.currentUser ? Auth.currentUser.fullName : 'مدير النظام';
+
+        DB.state.invoices.push({
+          id: 'inv_' + Date.now(),
+          invoiceNo,
+          electronicUuid,
+          date,
+          supplierId,
+          linkedVoucherNo: rec.voucher ? rec.voucher.voucherNo : linkedVoucherNo,
+          items,
+          subtotal: totals.subtotal,
+          vatAmount: totals.vat,
+          withholdingTax: totals.wht,
+          netTotal: totals.net,
+          matchStatus: rec.status,
+          matchDetails: rec.summary,
+          createdBy: actorName
+        });
+
+        DB.logAction('رفع واعتماد فاتورة مشتريات رقم #' + invoiceNo + ' (' + (rec.status === 'matched' ? 'متطابقة' : 'تحتاج مراجعة') + ')');
+        await DB.commit();
+        UI.toast('تم حفظ الفاتورة #' + invoiceNo + ' بنجاح', rec.status === 'mismatch' ? 'warning' : 'success');
+        AppRouter.render();
+      }
+    };
+
+    /**
+     * 13. VIEW 4: SITES MANAGEMENT & SITE CUSTODY BALANCES (STOREKEEPER & ADMIN)
+     */
+    const SitesView = {
+      render() {
+        const balances = Object.values(Analytics.getSiteBalances());
+        const canManage = Auth.can('manage_sites');
+
+        return `
+          <div class="card" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+            <div>
+              <h2 class="text-base font-extrabold">📍 إدارة المواقع ومتابعة عهدة الأسطوانات والراكات</h2>
+              <p class="text-xs text-muted">الراكات (راك / صندوق) تظهر هنا كـ <strong>رصيد موقع فقط</strong> ولا تدخل في مطابقة الفواتير</p>
+            </div>
+            ${canManage ? '<button type="button" onclick="SitesView.openAddSiteModal()" class="btn btn-primary btn-sm">+ إضافة موقع / مشروع جديد</button>' : ''}
+          </div>
+
+          ${balances.length === 0 ? `
+            <div class="card text-center" style="padding: 40px 20px;">
+              <div class="text-2xl" style="margin-bottom: 8px;">📍</div>
+              <h3 class="text-base font-extrabold">لا توجد مواقع مسجلة في النظام بعد</h3>
+              <p class="text-xs text-muted" style="margin-top: 4px;">
+                ${canManage ? 'ابدأ بإضافة مواقع العمل والمشاريع لكي تتمكن من تسجيل أذون الاستلام والتسليم ومتابعة رصيد كل موقع.' : 'يرجى التواصل مع أمين المخزن أو مدير النظام لإضافة المواقع.'}
+              </p>
+              ${canManage ? '<button type="button" onclick="SitesView.openAddSiteModal()" class="btn btn-primary btn-sm" style="margin-top: 14px;">+ إضافة أول موقع الآن</button>' : ''}
+            </div>
+          ` : `
+            <div class="grid-3">
+              ${balances.map(s => `
+                <div class="card" style="display: flex; flex-direction: column; justify-content: space-between; gap: 14px;">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                      <div>
+                        ${s.siteCode ? '<span class="badge badge-primary font-mono">' + s.siteCode + '</span>' : '<span class="badge badge-primary">موقع عمل</span>'}
+                        <h3 class="text-base font-extrabold" style="margin-top: 6px;">${s.siteName}</h3>
+                        ${s.notes ? '<p class="text-xs text-muted" style="margin-top: 2px;">' + s.notes + '</p>' : ''}
+                      </div>
+                      <div style="background: #0f172a; color: #fff; padding: 8px 12px; border-radius: 12px; text-align: center;">
+                        <div class="text-lg font-extrabold" style="line-height: 1;">${s.totalCylinders}</div>
+                        <div style="font-size: 0.68rem; color: #94a3b8;">أسطوانة</div>
+                      </div>
+                    </div>
+
+                    <div class="grid-2" style="margin-top: 14px; gap: 8px;">
+                      ${GAS_TYPES.map(g => {
+                        const q = s.byGas[g.code] || 0;
+                        return `
+                          <div style="padding: 8px 10px; border-radius: 10px; border: 1px solid ${g.isRack ? '#ddd6fe' : '#e2e8f0'}; background: ${g.isRack ? '#f5f3ff' : '#f8fafc'}; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="text-xs font-bold">${g.short}</span>
+                            <span class="text-sm font-extrabold ${g.isRack ? 'text-primary' : ''}">${q}</span>
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
+                  </div>
+
+                  <div style="border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                      <span class="badge badge-purple">رصيد موقع فقط: ${s.racksCount} راك</span>
+                      ${s.createdBy ? '<span class="user-stamp">👤 بواسطة: ' + s.createdBy + '</span>' : ''}
+                    </div>
+                    ${canManage ? `
+                      <div style="display: flex; justify-content: flex-end; gap: 6px; padding-top: 4px;">
+                        <button type="button" onclick="SitesView.openEditSiteModal('${s.siteId}')" class="btn btn-outline btn-sm">✏️ تعديل</button>
+                        <button type="button" onclick="SitesView.confirmDeleteSite('${s.siteId}')" class="btn btn-soft-danger btn-sm">🗑️ حذف</button>
+                      </div>
+                    ` : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+        `;
+      },
+
+      openManageSitesModal() {
+        const body = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-xs text-muted font-bold">المواقع المسجلة حالياً (${DB.state.sites.length})</span>
+            <button type="button" onclick="SitesView.openAddSiteModal()" class="btn btn-primary btn-sm">+ إضافة موقع جديد</button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>كود الموقع</th>
+                  <th>اسم الموقع</th>
+                  <th>ملاحظات</th>
+                  <th>بواسطة</th>
+                  <th class="text-center">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${DB.state.sites.length === 0
+                  ? '<tr><td colspan="5" class="text-center text-muted font-bold" style="padding:18px;">لا توجد مواقع مسجلة بعد</td></tr>'
+                  : DB.state.sites.map(s => `
+                    <tr>
+                      <td class="font-mono font-bold">${s.code || '—'}</td>
+                      <td class="font-extrabold">${s.name}</td>
+                      <td class="text-xs text-muted">${s.notes || '—'}</td>
+                      <td><span class="user-stamp">👤 ${s.createdBy || '—'}</span></td>
+                      <td class="text-center">
+                        <button type="button" onclick="SitesView.openEditSiteModal('${s.id}')" class="btn btn-outline btn-sm">تعديل</button>
+                        <button type="button" onclick="SitesView.confirmDeleteSite('${s.id}')" class="btn btn-soft-danger btn-sm">حذف</button>
+                      </td>
+                    </tr>
+                  `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+        UI.openModal('إدارة مواقع العمل والمشاريع', body);
+      },
+
+      openAddSiteModal() {
+        if (!Auth.can('manage_sites')) {
+          UI.toast('ليس لديك صلاحية إدارة المواقع', 'error');
+          return;
+        }
+        const body = `
+          <form id="add-site-form" onsubmit="SitesView.saveSite(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">اسم الموقع / المشروع *</label>
+                <input id="ns-name" type="text" required class="form-control" placeholder="مثال: مصنع أسمنت السويس" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">كود الموقع (Site Code)</label>
+                <input id="ns-code" type="text" class="form-control font-mono" placeholder="مثال: SITE-01" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات / العنوان</label>
+              <input id="ns-notes" type="text" class="form-control" placeholder="تفاصيل الموقع أو مهندس المشروع" />
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="add-site-form" class="btn btn-primary btn-sm">حفظ الموقع</button>
+        `;
+        UI.openModal('إضافة موقع / مشروع جديد', body, footer);
+      },
+
+      async saveSite(e) {
+        e.preventDefault();
+        const name = document.getElementById('ns-name').value.trim();
+        if (!name) return;
+        const code = document.getElementById('ns-code').value.trim();
+        const notes = document.getElementById('ns-notes').value.trim();
+        const actor = Auth.currentUser ? Auth.currentUser.fullName : 'أمين المخزن';
+
+        DB.state.sites.push({
+          id: 'site_' + Date.now(),
+          name,
+          code,
+          notes,
+          createdBy: actor
+        });
+        DB.logAction('إضافة موقع / مشروع جديد: ' + name + (code ? ' (' + code + ')' : ''));
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم إضافة الموقع (' + name + ') بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      openEditSiteModal(siteId) {
+        const s = DB.state.sites.find(x => x.id === siteId);
+        if (!s) return;
+        const body = `
+          <form id="edit-site-form" onsubmit="SitesView.updateSite(event, '${s.id}')" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">اسم الموقع / المشروع *</label>
+                <input id="es-name" type="text" required value="${s.name}" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">كود الموقع</label>
+                <input id="es-code" type="text" value="${s.code || ''}" class="form-control font-mono" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ملاحظات / العنوان</label>
+              <input id="es-notes" type="text" value="${s.notes || ''}" class="form-control" />
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="edit-site-form" class="btn btn-primary btn-sm">حفظ التعديلات</button>
+        `;
+        UI.openModal('تعديل بيانات الموقع', body, footer);
+      },
+
+      async updateSite(e, siteId) {
+        e.preventDefault();
+        const s = DB.state.sites.find(x => x.id === siteId);
+        if (!s) return;
+        s.name = document.getElementById('es-name').value.trim();
+        s.code = document.getElementById('es-code').value.trim();
+        s.notes = document.getElementById('es-notes').value.trim();
+        DB.logAction('تعديل بيانات الموقع: ' + s.name);
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم تعديل بيانات الموقع بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      confirmDeleteSite(siteId) {
+        const s = DB.state.sites.find(x => x.id === siteId);
+        if (!s) return;
+        const linkedVouchers = DB.state.vouchers.filter(v => v.siteId === siteId).length;
+        const body = `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px; border-radius: 12px; font-size: 0.84rem;">
+            هل أنت متأكد من حذف الموقع <strong>"${s.name}"</strong>؟
+            ${linkedVouchers > 0 ? '<div style="margin-top:6px;">تنبيه: يوجد عدد (' + linkedVouchers + ') إذن استلام مرتبط بهذا الموقع.</div>' : ''}
+          </div>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="button" onclick="SitesView.deleteSite('${siteId}')" class="btn btn-danger btn-sm">تأكيد الحذف</button>
+        `;
+        UI.openModal('تأكيد حذف الموقع', body, footer);
+      },
+
+      async deleteSite(siteId) {
+        const s = DB.state.sites.find(x => x.id === siteId);
+        if (!s) return;
+        DB.state.sites = DB.state.sites.filter(x => x.id !== siteId);
+        DB.logAction('حذف الموقع: ' + s.name);
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم حذف الموقع بنجاح', 'success');
+        AppRouter.render();
+      }
+    };
+
+    /**
+     * 14. VIEW 5: SUPPLIERS, OPENING BALANCES (ADMIN ONLY) & PAYMENTS (FINANCE/ADMIN)
+     */
+    const SuppliersView = {
+      selectedSupplierId: null,
+      tempAttachment: '',
+
+      render() {
+        const canManageSuppliers = Auth.can('manage_suppliers');
+        const canManagePayments = Auth.can('manage_payments');
+
+        if (!this.selectedSupplierId || !DB.state.suppliers.some(s => s.id === this.selectedSupplierId)) {
+          this.selectedSupplierId = DB.state.suppliers.length > 0 ? DB.state.suppliers[0].id : null;
+        }
+        const activeSup = DB.state.suppliers.find(s => s.id === this.selectedSupplierId);
+        const fin = activeSup ? Analytics.getSupplierFinancials(activeSup.id) : null;
+
+        return `
+          <div class="card" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+            <div>
+              <h2 class="text-base font-extrabold">حسابات الموردين والأرصدة الافتتاحية وسندات الدفع</h2>
+              <p class="text-xs text-muted">إضافة وتعديل وحذف الموردين وأرصدتهم الافتتاحية متاحة لمدير النظام فقط</p>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              ${canManageSuppliers ? '<button type="button" onclick="SuppliersView.openAddSupplierModal()" class="btn btn-dark btn-sm">+ إضافة مورد جديد (مدير النظام)</button>' : ''}
+              ${canManagePayments && DB.state.suppliers.length > 0 ? '<button type="button" onclick="SuppliersView.openPaymentModal()" class="btn btn-emerald btn-sm">💳 إرفاق سند دفع / شيك</button>' : ''}
+            </div>
+          </div>
+
+          ${DB.state.suppliers.length === 0 ? `
+            <div class="card text-center" style="padding: 40px 20px;">
+              <div class="text-2xl" style="margin-bottom: 8px;">🏢</div>
+              <h3 class="text-base font-extrabold">لا يوجد موردون مسجلون في النظام بعد</h3>
+              <p class="text-xs text-muted" style="margin-top: 4px;">
+                ${canManageSuppliers
+                  ? 'بصفتك مدير النظام، يمكنك إضافة الموردين وتحديد أرصدتهم الافتتاحية من هنا.'
+                  : 'يرجى التواصل مع مدير النظام لإضافة الموردين وأرصدتهم الافتتاحية.'}
+              </p>
+              ${canManageSuppliers ? '<button type="button" onclick="SuppliersView.openAddSupplierModal()" class="btn btn-dark btn-sm" style="margin-top: 14px;">+ إضافة أول مورد الآن</button>' : ''}
+            </div>
+          ` : `
+            <div class="grid-3">
+              ${DB.state.suppliers.map(s => {
+                const f = Analytics.getSupplierFinancials(s.id);
+                const sel = s.id === this.selectedSupplierId;
+                return `
+                  <div onclick="SuppliersView.selectSupplier('${s.id}')" class="card" style="cursor: pointer; border: 2px solid ${sel ? '#1d4ed8' : '#e2e8f0'}; background: ${sel ? '#eff6ff' : '#fff'}; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+                    <div>
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                        <div class="text-sm font-extrabold">${s.name}</div>
+                        ${canManageSuppliers ? `
+                          <div style="display: flex; gap: 4px;" onclick="event.stopPropagation()">
+                            <button type="button" onclick="SuppliersView.openEditSupplierModal('${s.id}')" class="btn btn-outline btn-sm" title="تعديل المورد والرصيد الافتتاحي">✏️</button>
+                            <button type="button" onclick="SuppliersView.confirmDeleteSupplier('${s.id}')" class="btn btn-soft-danger btn-sm" title="حذف المورد">🗑️</button>
+                          </div>
+                        ` : ''}
+                      </div>
+                      <div class="text-xs text-muted" style="margin-top: 3px;">الرقم الضريبي: ${s.taxReg || '—'} ${s.phone ? ' | ' + s.phone : ''}</div>
+                      <div style="margin-top: 6px;"><span class="user-stamp">👤 بواسطة: ${s.createdBy || 'مدير النظام'}</span></div>
+                    </div>
+
+                    <div class="grid-4" style="margin-top: 8px; padding-top: 10px; border-top: 1px solid #cbd5e1; text-align: center; gap: 6px;">
+                      <div><div class="text-xs text-muted">افتتاحي</div><div class="text-xs font-extrabold">${f.opening.toLocaleString()}</div></div>
+                      <div><div class="text-xs text-muted">فواتير</div><div class="text-xs font-extrabold">${f.totalInvoiced.toLocaleString()}</div></div>
+                      <div><div class="text-xs text-muted">مسدد</div><div class="text-xs font-extrabold text-emerald">${f.totalPaid.toLocaleString()}</div></div>
+                      <div><div class="text-xs text-muted">المتبقي</div><div class="text-xs font-extrabold text-danger">${f.balanceDue.toLocaleString()}</div></div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          `}
+
+          ${activeSup && fin ? `
+            <div class="card">
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px;">
+                <div>
+                  <h3 class="text-base font-extrabold">كشف حساب المورد: ${activeSup.name}</h3>
+                  <p class="text-xs text-muted">
+                    الرصيد الافتتاحي: <strong>${UI.fmtMoney(fin.opening)}</strong> + إجمالي الفواتير: <strong>${UI.fmtMoney(fin.totalInvoiced)}</strong> - المسدد: <strong class="text-emerald">${UI.fmtMoney(fin.totalPaid)}</strong> = صافي المستحق: <strong class="text-danger">${UI.fmtMoney(fin.balanceDue)}</strong>
+                  </p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  ${canManageSuppliers ? '<button type="button" onclick="SuppliersView.openEditSupplierModal(\'' + activeSup.id + '\')" class="btn btn-outline btn-sm">✏️ تعديل المورد / الرصيد الافتتاحي</button>' : ''}
+                  ${canManagePayments ? '<button type="button" onclick="SuppliersView.openPaymentModal(\'' + activeSup.id + '\')" class="btn btn-soft-emerald btn-sm">+ تسجيل دفعة / شيك</button>' : ''}
+                </div>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>التاريخ</th>
+                      <th>النوع</th>
+                      <th>رقم المستند</th>
+                      <th>البيان</th>
+                      <th class="text-center">للمورد (+)</th>
+                      <th class="text-center">مسدد (-)</th>
+                      <th>المستخدم المنفذ</th>
+                      <th class="text-center">المرفق</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${fin.opening !== 0 ? `
+                      <tr style="background: #f8fafc;">
+                        <td class="font-bold">—</td>
+                        <td><span class="badge badge-slate">رصيد افتتاحي</span></td>
+                        <td class="font-bold">—</td>
+                        <td>الرصيد الافتتاحي للمورد عند بدء النظام</td>
+                        <td class="text-center font-extrabold">${UI.fmtMoney(fin.opening)}</td>
+                        <td class="text-center text-muted">—</td>
+                        <td><span class="user-stamp">👤 بواسطة: ${activeSup.createdBy || 'مدير النظام'}</span></td>
+                        <td class="text-center text-muted">—</td>
+                      </tr>
+                    ` : ''}
+
+                    ${fin.invoices.map(inv => `
+                      <tr>
+                        <td class="font-bold">${inv.date}</td>
+                        <td><span class="badge badge-primary">فاتورة مشتريات</span></td>
+                        <td class="font-extrabold text-primary">#${inv.invoiceNo}</td>
+                        <td>مرتبطة بإذن #${inv.linkedVoucherNo || '—'}</td>
+                        <td class="text-center font-extrabold">${UI.fmtMoney(inv.netTotal)}</td>
+                        <td class="text-center text-muted">—</td>
+                        <td><span class="user-stamp">👤 بواسطة: ${inv.createdBy || 'غير محدد'}</span></td>
+                        <td class="text-center text-xs text-muted">فاتورة إلكترونية</td>
+                      </tr>
+                    `).join('')}
+
+                    ${fin.payments.map(p => `
+                      <tr style="background: #ecfdf5;">
+                        <td class="font-bold">${p.date}</td>
+                        <td><span class="badge badge-emerald">${p.type}</span></td>
+                        <td class="font-extrabold text-emerald">${p.paymentNo}</td>
+                        <td>${p.bankName ? 'بنك: ' + p.bankName + ' | استحقاق: ' + (p.dueDate || p.date) : (p.notes || 'سند سداد')}</td>
+                        <td class="text-center text-muted">—</td>
+                        <td class="text-center font-extrabold text-emerald">${UI.fmtMoney(p.amount)}</td>
+                        <td><span class="user-stamp">👤 بواسطة: ${p.createdBy || 'غير محدد'}</span></td>
+                        <td class="text-center">
+                          ${p.attachmentData ? '<button type="button" onclick="SuppliersView.previewAttachment(\'' + p.id + '\')" class="btn btn-dark btn-sm">🖼️ عرض</button>' : '<span class="text-xs text-muted">—</span>'}
+                        </td>
+                      </tr>
+                    `).join('')}
+
+                    ${fin.opening === 0 && fin.invoices.length === 0 && fin.payments.length === 0 ? `
+                      <tr><td colspan="8" class="text-center text-muted font-bold" style="padding: 20px;">لا توجد حركات مالية مسجلة لهذا المورد حتى الآن</td></tr>
+                    ` : ''}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+        `;
+      },
+
+      selectSupplier(id) {
+        this.selectedSupplierId = id;
+        AppRouter.render();
+      },
+
+      openAddSupplierModal() {
+        if (!Auth.can('manage_suppliers')) {
+          UI.toast('إضافة الموردين والأرصدة الافتتاحية متاحة لمدير النظام فقط', 'error');
+          return;
+        }
+        const body = `
+          <form id="add-sup-form" onsubmit="SuppliersView.saveSupplier(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">اسم المورد / الشركة *</label>
+              <input id="sup-name" type="text" required class="form-control" placeholder="مثال: المصنع السعودي المصري للغازات" />
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">الرقم الضريبي</label>
+                <input id="sup-tax" type="text" class="form-control font-mono" placeholder="447749706" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم الهاتف</label>
+                <input id="sup-phone" type="text" class="form-control" placeholder="010xxxxxxxx" />
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">الرصيد الافتتاحي (ج.م)</label>
+                <input id="sup-open" type="number" step="0.01" value="0" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">العنوان</label>
+                <input id="sup-addr" type="text" class="form-control" placeholder="القاهرة" />
+              </div>
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="add-sup-form" class="btn btn-emerald btn-sm">حفظ المورد</button>
+        `;
+        UI.openModal('إضافة مورد جديد وتحديد الرصيد الافتتاحي', body, footer);
+      },
+
+      async saveSupplier(e) {
+        e.preventDefault();
+        if (!Auth.can('manage_suppliers')) return;
+        const name = document.getElementById('sup-name').value.trim();
+        if (!name) return;
+        const actor = Auth.currentUser ? Auth.currentUser.fullName : 'مدير النظام';
+        const openingBalance = Number(document.getElementById('sup-open').value || 0);
+        const sup = {
+          id: 'sup_' + Date.now(),
+          name,
+          taxReg: document.getElementById('sup-tax').value.trim(),
+          phone: document.getElementById('sup-phone').value.trim(),
+          openingBalance,
+          address: document.getElementById('sup-addr').value.trim(),
+          createdBy: actor
+        };
+        DB.state.suppliers.push(sup);
+        this.selectedSupplierId = sup.id;
+        DB.logAction('إضافة مورد جديد: ' + name + ' (رصيد افتتاحي: ' + UI.fmtMoney(openingBalance) + ')');
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم إضافة المورد (' + name + ') بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      openEditSupplierModal(supId) {
+        if (!Auth.can('manage_suppliers')) {
+          UI.toast('تعديل الموردين متاح لمدير النظام فقط', 'error');
+          return;
+        }
+        const s = DB.state.suppliers.find(x => x.id === supId);
+        if (!s) return;
+        const body = `
+          <form id="edit-sup-form" onsubmit="SuppliersView.updateSupplier(event, '${s.id}')" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">اسم المورد / الشركة *</label>
+              <input id="esup-name" type="text" required value="${s.name}" class="form-control" />
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">الرقم الضريبي</label>
+                <input id="esup-tax" type="text" value="${s.taxReg || ''}" class="form-control font-mono" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم الهاتف</label>
+                <input id="esup-phone" type="text" value="${s.phone || ''}" class="form-control" />
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">الرصيد الافتتاحي (ج.م)</label>
+                <input id="esup-open" type="number" step="0.01" value="${Number(s.openingBalance || 0)}" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">العنوان</label>
+                <input id="esup-addr" type="text" value="${s.address || ''}" class="form-control" />
+              </div>
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="edit-sup-form" class="btn btn-primary btn-sm">حفظ التعديلات</button>
+        `;
+        UI.openModal('تعديل بيانات المورد والرصيد الافتتاحي', body, footer);
+      },
+
+      async updateSupplier(e, supId) {
+        e.preventDefault();
+        if (!Auth.can('manage_suppliers')) return;
+        const s = DB.state.suppliers.find(x => x.id === supId);
+        if (!s) return;
+        s.name = document.getElementById('esup-name').value.trim();
+        s.taxReg = document.getElementById('esup-tax').value.trim();
+        s.phone = document.getElementById('esup-phone').value.trim();
+        s.openingBalance = Number(document.getElementById('esup-open').value || 0);
+        s.address = document.getElementById('esup-addr').value.trim();
+        DB.logAction('تعديل بيانات المورد: ' + s.name + ' (الرصيد الافتتاحي: ' + UI.fmtMoney(s.openingBalance) + ')');
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم تعديل بيانات المورد بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      confirmDeleteSupplier(supId) {
+        if (!Auth.can('manage_suppliers')) {
+          UI.toast('حذف الموردين متاح لمدير النظام فقط', 'error');
+          return;
+        }
+        const s = DB.state.suppliers.find(x => x.id === supId);
+        if (!s) return;
+        const body = `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px; border-radius: 12px; font-size: 0.84rem;">
+            هل أنت متأكد من حذف المورد <strong>"${s.name}"</strong> نهائياً من النظام؟
+          </div>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="button" onclick="SuppliersView.deleteSupplier('${supId}')" class="btn btn-danger btn-sm">تأكيد الحذف</button>
+        `;
+        UI.openModal('تأكيد حذف المورد', body, footer);
+      },
+
+      async deleteSupplier(supId) {
+        if (!Auth.can('manage_suppliers')) return;
+        const s = DB.state.suppliers.find(x => x.id === supId);
+        if (!s) return;
+        DB.state.suppliers = DB.state.suppliers.filter(x => x.id !== supId);
+        if (this.selectedSupplierId === supId) this.selectedSupplierId = null;
+        DB.logAction('حذف المورد: ' + s.name);
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم حذف المورد بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      openPaymentModal(preSupId = null) {
+        this.tempAttachment = '';
+        const today = new Date().toISOString().split('T')[0];
+        const supId = preSupId || this.selectedSupplierId || (DB.state.suppliers[0] && DB.state.suppliers[0].id);
+
+        const body = `
+          <form id="add-pay-form" onsubmit="SuppliersView.savePayment(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">المورد *</label>
+                <select id="pay-sup" required class="form-control">
+                  ${DB.state.suppliers.map(s => '<option value="' + s.id + '" ' + (s.id === supId ? 'selected' : '') + '>' + s.name + '</option>').join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">نوع السداد *</label>
+                <select id="pay-type" required class="form-control">
+                  <option value="شيك بنكي">شيك بنكي (Check)</option>
+                  <option value="تحويل بنكي">تحويل بنكي</option>
+                  <option value="سند صرف نقدي">سند صرف نقدي</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label class="form-label">رقم الشيك / السند *</label>
+                <input id="pay-no" type="text" required class="form-control" placeholder="CHK-9021" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">المبلغ المسدد (ج.م) *</label>
+                <input id="pay-amt" type="number" step="0.01" min="1" required class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">تاريخ التحرير *</label>
+                <input id="pay-date" type="date" required value="${today}" class="form-control" />
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label class="form-label">اسم البنك</label>
+                <input id="pay-bank" type="text" class="form-control" placeholder="CIB / البنك الأهلي" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">تاريخ الاستحقاق</label>
+                <input id="pay-due" type="date" value="${today}" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم الفاتورة المرتبطة</label>
+                <input id="pay-inv" type="text" class="form-control" placeholder="رقم الفاتورة" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">إرفاق صورة الشيك أو إيصال السداد</label>
+              <input type="file" accept="image/*" onchange="SuppliersView.handleFile(this)" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">ملاحظات</label>
+              <input id="pay-notes" type="text" class="form-control" placeholder="بيان السداد" />
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="add-pay-form" class="btn btn-emerald btn-sm">حفظ السند وتحديث الحساب</button>
+        `;
+        UI.openModal('تسجيل سند دفع / شيك لمورد', body, footer);
+      },
+
+      handleFile(inputEl) {
+        const file = inputEl.files && inputEl.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.tempAttachment = e.target.result;
+          UI.toast('تم إرفاق صورة الشيك / السند بنجاح', 'info');
+        };
+        reader.readAsDataURL(file);
+      },
+
+      async savePayment(e) {
+        e.preventDefault();
+        const supId = document.getElementById('pay-sup').value;
+        const actor = Auth.currentUser ? Auth.currentUser.fullName : 'المدير المالي';
+        const pay = {
+          id: 'pay_' + Date.now(),
+          supplierId: supId,
+          type: document.getElementById('pay-type').value,
+          paymentNo: document.getElementById('pay-no').value.trim(),
+          amount: Number(document.getElementById('pay-amt').value || 0),
+          date: document.getElementById('pay-date').value,
+          bankName: document.getElementById('pay-bank').value.trim(),
+          dueDate: document.getElementById('pay-due').value,
+          invoiceNo: document.getElementById('pay-inv').value.trim(),
+          notes: document.getElementById('pay-notes').value.trim(),
+          attachmentData: this.tempAttachment,
+          createdBy: actor
+        };
+        DB.state.payments.push(pay);
+        this.selectedSupplierId = supId;
+        DB.logAction('تسجيل ' + pay.type + ' رقم ' + pay.paymentNo + ' بقيمة ' + UI.fmtMoney(pay.amount));
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم تسجيل سند الدفع بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      previewAttachment(id) {
+        const p = DB.state.payments.find(x => x.id === id);
+        if (!p || !p.attachmentData) return;
+        UI.openModal('مرفق ' + p.type + ' رقم ' + p.paymentNo, '<img src="' + p.attachmentData + '" style="max-width:100%; border-radius:12px;" />');
+      }
+    };
+
+    /**
+     * 15. VIEW 6: REPORTS CENTER, MULTI-CRITERIA FILTERING & A4 PRINTING
+     */
+    const ReportsView = {
+      render() {
+        return `
+          <div class="card no-print" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+              <div>
+                <h2 class="text-base font-extrabold">🔍 مركز التقارير والبحث الدقيق والطباعة</h2>
+                <p class="text-xs text-muted">فلتر برقم الإذن، الفاتورة، الموقع، المورد، نوع الغاز، الفترة الزمنية، أو اسم المستخدم</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="ReportsView.resetFilters()" class="btn btn-outline btn-sm">مسح الفلاتر</button>
+                <button type="button" onclick="ReportsView.printReport()" class="btn btn-dark btn-sm">🖨️ طباعة التقرير (A4)</button>
+              </div>
+            </div>
+
+            <div class="grid-4">
+              <div class="form-group">
+                <label class="form-label">رقم الإذن (Voucher #)</label>
+                <input id="flt-voucher" type="text" oninput="ReportsView.applyFilters()" class="form-control" placeholder="رقم الإذن" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">رقم الفاتورة / UUID</label>
+                <input id="flt-invoice" type="text" oninput="ReportsView.applyFilters()" class="form-control" placeholder="رقم الفاتورة" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الموقع / المشروع</label>
+                <select id="flt-site" onchange="ReportsView.applyFilters()" class="form-control">
+                  <option value="">جميع المواقع</option>
+                  ${DB.state.sites.map(s => '<option value="' + s.id + '">' + (s.code ? '[' + s.code + '] ' : '') + s.name + '</option>').join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">المورد</label>
+                <select id="flt-supplier" onchange="ReportsView.applyFilters()" class="form-control">
+                  <option value="">جميع الموردين</option>
+                  ${DB.state.suppliers.map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">نوع الغاز / الراك</label>
+                <select id="flt-gas" onchange="ReportsView.applyFilters()" class="form-control">
+                  <option value="">جميع الأصناف</option>
+                  ${GAS_TYPES.map(g => '<option value="' + g.code + '">' + g.name + '</option>').join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">حالة المطابقة</label>
+                <select id="flt-match" onchange="ReportsView.applyFilters()" class="form-control">
+                  <option value="">الكل</option>
+                  <option value="matched">متطابق تماماً ✅</option>
+                  <option value="mismatch">عدم تطابق ⚠️</option>
+                  <option value="unlinked">بدون فاتورة</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">من تاريخ</label>
+                <input id="flt-date-from" type="date" onchange="ReportsView.applyFilters()" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">إلى تاريخ</label>
+                <input id="flt-date-to" type="date" onchange="ReportsView.applyFilters()" class="form-control" />
+              </div>
+            </div>
+          </div>
+
+          <div id="report-results-container"></div>
+        `;
+      },
+
+      resetFilters() {
+        ['flt-voucher', 'flt-invoice', 'flt-site', 'flt-supplier', 'flt-gas', 'flt-match', 'flt-date-from', 'flt-date-to'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.value = '';
+        });
+        this.applyFilters();
+      },
+
+      applyFilters() {
+        const fVoucher = (document.getElementById('flt-voucher')?.value || '').trim().toLowerCase();
+        const fInvoice = (document.getElementById('flt-invoice')?.value || '').trim().toLowerCase();
+        const fSite = document.getElementById('flt-site')?.value || '';
+        const fSupplier = document.getElementById('flt-supplier')?.value || '';
+        const fGas = document.getElementById('flt-gas')?.value || '';
+        const fMatch = document.getElementById('flt-match')?.value || '';
+        const fFrom = document.getElementById('flt-date-from')?.value || '';
+        const fTo = document.getElementById('flt-date-to')?.value || '';
+
+        let rows = DB.state.vouchers.map(v => {
+          const inv = DB.state.invoices.find(
+            i => i.linkedVoucherNo && i.linkedVoucherNo.replace(/^0+/, '') === v.voucherNo.replace(/^0+/, '')
+          );
+          return { voucher: v, invoice: inv || null, matchStatus: inv ? inv.matchStatus : 'unlinked' };
+        });
+
+        rows = rows.filter(r => {
+          if (fVoucher && !r.voucher.voucherNo.toLowerCase().includes(fVoucher)) return false;
+          if (fInvoice) {
+            if (!r.invoice) return false;
+            const hitNo = r.invoice.invoiceNo.toLowerCase().includes(fInvoice);
+            const hitUuid = (r.invoice.electronicUuid || '').toLowerCase().includes(fInvoice);
+            if (!hitNo && !hitUuid) return false;
+          }
+          if (fSite && r.voucher.siteId !== fSite) return false;
+          if (fSupplier && r.voucher.supplierId !== fSupplier) return false;
+          if (fGas && !(r.voucher.items || []).some(i => i.gasCode === fGas)) return false;
+          if (fMatch && r.matchStatus !== fMatch) return false;
+          if (fFrom && r.voucher.date < fFrom) return false;
+          if (fTo && r.voucher.date > fTo) return false;
+          return true;
+        });
+
+        const container = document.getElementById('report-results-container');
+        if (!container) return;
+
+        container.innerHTML = `
+          <div class="card">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px;">
+              <h3 class="text-base font-extrabold">تقرير حركة الأسطوانات ومطابقة الفواتير (${rows.length} سجل)</h3>
+              <span class="badge badge-purple">تم استثناء الراكات من المطابقة (تُحتسب كرصيد موقع فقط)</span>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>رقم الإذن</th>
+                    <th>التاريخ</th>
+                    <th>الموقع</th>
+                    <th>المورد</th>
+                    <th>حركة الأصناف (قبل / +صادر / -وارد / بعد)</th>
+                    <th>الفاتورة</th>
+                    <th>القيمة</th>
+                    <th>حالة المطابقة</th>
+                    <th>المستخدم المنفذ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows.length === 0 ? '<tr><td colspan="9" class="text-center font-bold text-muted" style="padding:24px;">لا توجد سجلات مطابقة لمعايير البحث الحالية</td></tr>' : rows.map(r => {
+                    const itemsHtml = (r.voucher.items || [])
+                      .filter(i => !fGas || i.gasCode === fGas)
+                      .map(i => '<div><strong>' + UI.gasName(i.gasCode).split(' ')[0] + ':</strong> قبل(' + i.prior + ') | +' + i.receivedFull + ' | -' + i.returnedEmpty + ' &rarr; <strong>بعد(' + i.afterBalance + ')</strong></div>')
+                      .join('');
+
+                    const statusBadge = r.matchStatus === 'matched'
+                      ? '<span class="badge badge-emerald">متطابق تماماً ✅</span>'
+                      : r.matchStatus === 'mismatch'
+                      ? '<span class="badge badge-danger">عدم تطابق ⚠️</span>'
+                      : '<span class="badge badge-slate">بدون فاتورة</span>';
+
+                    return `
+                      <tr>
+                        <td class="font-extrabold text-primary">#${r.voucher.voucherNo}</td>
+                        <td class="font-bold">${r.voucher.date}</td>
+                        <td class="font-bold">${UI.siteName(r.voucher.siteId)}</td>
+                        <td>${UI.supplierName(r.voucher.supplierId)}</td>
+                        <td>${itemsHtml}</td>
+                        <td class="font-extrabold">${r.invoice ? '#' + r.invoice.invoiceNo : '—'}</td>
+                        <td class="font-extrabold">${r.invoice ? UI.fmtMoney(r.invoice.netTotal) : '—'}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                          <div class="user-stamp">👤 إذن: ${r.voucher.createdBy || '—'}</div>
+                          ${r.invoice ? '<div class="user-stamp" style="margin-top:4px;">📑 فاتورة: ' + (r.invoice.createdBy || '—') + '</div>' : ''}
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      },
+
+      printReport() {
+        document.getElementById('print-date').textContent = new Date().toLocaleString('ar-EG');
+        document.getElementById('print-user').textContent = Auth.currentUser ? Auth.currentUser.fullName : '';
+        const siteSel = document.getElementById('flt-site');
+        const siteLabel = siteSel && siteSel.value ? siteSel.options[siteSel.selectedIndex].text : 'جميع المواقع';
+        document.getElementById('print-filter-summary').textContent = 'نطاق التقرير: ' + siteLabel;
+        window.print();
+      }
+    };
+
+    /**
+     * 16. VIEW 7: USERS, PERMISSIONS MATRIX & ADMIN SYSTEM RESET
+     */
+    const UsersView = {
+      render() {
+        return `
+          <div class="card" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px;">
+            <div>
+              <h2 class="text-base font-extrabold">🛡️ إدارة المستخدمين ومصفوفة الصلاحيات</h2>
+              <p class="text-xs text-muted">تعديل بيانات حساب مدير النظام، إضافة موظفين جدد، وتخصيص صلاحيات كل مستخدم</p>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <button type="button" onclick="UsersView.openNewUserModal()" class="btn btn-primary btn-sm">+ إضافة مستخدم جديد</button>
+              ${Auth.can('reset_system') ? '<button type="button" onclick="UsersView.openSystemResetModal()" class="btn btn-danger btn-sm">🗑️ تصفير النظام بالكامل</button>' : ''}
+            </div>
+          </div>
+
+          <!-- User Cards -->
+          <div class="grid-2">
+            ${DB.state.users.map(u => `
+              <div class="card" style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span class="text-sm font-extrabold">${u.fullName}</span>
+                    <span class="badge badge-primary">${u.roleLabel}</span>
+                    <span class="badge ${u.active ? 'badge-emerald' : 'badge-danger'}">${u.active ? 'نشط' : 'موقوف'}</span>
+                  </div>
+                  <div class="text-xs text-muted" style="margin-top: 5px;">
+                    اسم المستخدم: <strong class="font-mono">${u.username}</strong> | كلمة المرور: <strong class="font-mono">${u.password}</strong>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px;">
+                  <button type="button" onclick="UsersView.openEditUserModal('${u.id}')" class="btn btn-outline btn-sm">✏️ تعديل</button>
+                  ${Auth.currentUser && Auth.currentUser.id !== u.id ? '<button type="button" onclick="UsersView.confirmDeleteUser(\'' + u.id + '\')" class="btn btn-soft-danger btn-sm">🗑️</button>' : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Permissions Matrix -->
+          <div class="card">
+            <h3 class="text-base font-extrabold" style="margin-bottom: 12px;">مصفوفة الصلاحيات التفصيلية</h3>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>الصلاحية / الوظيفة</th>
+                    ${DB.state.users.map(u => '<th class="text-center">' + u.username + '<div style="font-size:0.68rem; font-weight:400;">' + u.roleLabel + '</div></th>').join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${ALL_PERMISSIONS.map(perm => `
+                    <tr>
+                      <td>
+                        <div class="font-extrabold">${perm.label}</div>
+                        <div class="text-xs text-muted">${perm.desc}</div>
+                      </td>
+                      ${DB.state.users.map(u => {
+                        const checked = (u.permissions || []).includes(perm.key);
+                        const locked = Auth.currentUser && u.id === Auth.currentUser.id && perm.key === 'manage_users';
+                        return '<td class="text-center"><input type="checkbox" ' + (checked ? 'checked' : '') + ' ' + (locked ? 'disabled' : '') + ' onchange="UsersView.togglePerm(\'' + u.id + '\', \'' + perm.key + '\', this.checked)" style="width:18px; height:18px; cursor:pointer;" /></td>';
+                      }).join('')}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      },
+
+      async togglePerm(uid, key, checked) {
+        const u = DB.state.users.find(x => x.id === uid);
+        if (!u) return;
+        const set = new Set(u.permissions || []);
+        if (checked) set.add(key); else set.delete(key);
+        u.permissions = Array.from(set);
+        DB.logAction('تعديل صلاحيات المستخدم: ' + u.fullName);
+        await DB.commit();
+        Auth.refreshHeaderUser();
+        AppRouter.initNav();
+        UI.toast('تم تحديث الصلاحيات وحفظها', 'success');
+      },
+
+      openNewUserModal() {
+        const defaultPerms = ROLE_PRESETS.store.permissions;
+        const body = `
+          <form id="nu-form" onsubmit="UsersView.saveNewUser(event)" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">الاسم الكامل *</label>
+                <input id="nu-name" type="text" required class="form-control" placeholder="الاسم الكامل للموظف" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">الدور الوظيفي *</label>
+                <select id="nu-role" onchange="UsersView.applyRolePresetToModal(this.value)" class="form-control">
+                  <option value="store">أمين المخزن</option>
+                  <option value="pm">مدير المشروعات</option>
+                  <option value="finance">المحاسب / المدير المالي</option>
+                  <option value="admin">مدير النظام</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم المستخدم (Username) *</label>
+                <input id="nu-user" type="text" required class="form-control font-mono" placeholder="اسم الدخول" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">كلمة المرور (Password) *</label>
+                <input id="nu-pass" type="text" required class="form-control font-mono" placeholder="كلمة المرور" />
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 10px;">
+              <div class="form-label" style="margin-bottom: 8px;">تحديد صلاحيات هذا المستخدم:</div>
+              <div style="display: flex; flex-direction: column; gap: 6px; max-height: 210px; overflow-y: auto; padding: 8px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                ${ALL_PERMISSIONS.map(p => `
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                    <input type="checkbox" name="nu-perm" value="${p.key}" ${defaultPerms.includes(p.key) ? 'checked' : ''} />
+                    <span>${p.label}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="nu-form" class="btn btn-primary btn-sm">إنشاء المستخدم</button>
+        `;
+        UI.openModal('إضافة مستخدم جديد وتحديد صلاحياته', body, footer);
+      },
+
+      applyRolePresetToModal(roleKey) {
+        const preset = ROLE_PRESETS[roleKey] || ROLE_PRESETS.store;
+        document.querySelectorAll('input[name="nu-perm"]').forEach(cb => {
+          cb.checked = preset.permissions.includes(cb.value);
+        });
+      },
+
+      async saveNewUser(e) {
+        e.preventDefault();
+        const username = document.getElementById('nu-user').value.trim().toLowerCase();
+        if (DB.state.users.some(u => u.username.toLowerCase() === username)) {
+          UI.toast('اسم المستخدم موجود مسبقاً', 'error');
+          return;
+        }
+        const fullName = document.getElementById('nu-name').value.trim();
+        const roleKey = document.getElementById('nu-role').value;
+        const roleLabel = (ROLE_PRESETS[roleKey] || { label: 'مستخدم' }).label;
+        const permissions = Array.from(document.querySelectorAll('input[name="nu-perm"]:checked')).map(cb => cb.value);
+
+        DB.state.users.push({
+          id: 'u_' + Date.now(),
+          fullName,
+          role: roleKey,
+          roleLabel,
+          username,
+          password: document.getElementById('nu-pass').value.trim(),
+          active: true,
+          permissions
+        });
+        DB.logAction('إنشاء حساب مستخدم جديد: ' + fullName + ' (' + roleLabel + ')');
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم إنشاء حساب (' + fullName + ') بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      openEditUserModal(uid) {
+        const u = DB.state.users.find(x => x.id === uid);
+        if (!u) return;
+        const body = `
+          <form id="eu-form" onsubmit="UsersView.updateUser(event, '${u.id}')" style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label class="form-label">الاسم الكامل *</label>
+                <input id="eu-name" type="text" required value="${u.fullName}" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">المسمى الوظيفي *</label>
+                <input id="eu-role-label" type="text" required value="${u.roleLabel}" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">اسم المستخدم (Username) *</label>
+                <input id="eu-username" type="text" required value="${u.username}" class="form-control font-mono" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">كلمة المرور (Password) *</label>
+                <input id="eu-pass" type="text" required value="${u.password}" class="form-control font-mono" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">حالة الحساب</label>
+              <select id="eu-active" class="form-control">
+                <option value="true" ${u.active ? 'selected' : ''}>نشط</option>
+                <option value="false" ${!u.active ? 'selected' : ''}>موقوف</option>
+              </select>
+            </div>
+          </form>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="submit" form="eu-form" class="btn btn-primary btn-sm">حفظ التعديلات</button>
+        `;
+        UI.openModal('تعديل بيانات المستخدم: ' + u.username, body, footer);
+      },
+
+      async updateUser(e, uid) {
+        e.preventDefault();
+        const u = DB.state.users.find(x => x.id === uid);
+        if (!u) return;
+        const newUsername = document.getElementById('eu-username').value.trim().toLowerCase();
+        if (DB.state.users.some(other => other.id !== uid && other.username.toLowerCase() === newUsername)) {
+          UI.toast('اسم المستخدم مستخدم لحساب آخر', 'error');
+          return;
+        }
+        u.fullName = document.getElementById('eu-name').value.trim();
+        u.roleLabel = document.getElementById('eu-role-label').value.trim();
+        u.username = newUsername;
+        u.password = document.getElementById('eu-pass').value.trim();
+        u.active = document.getElementById('eu-active').value === 'true';
+
+        DB.logAction('تعديل بيانات المستخدم: ' + u.fullName);
+        await DB.commit();
+        Auth.refreshHeaderUser();
+        UI.closeModal();
+        UI.toast('تم تحديث بيانات الحساب بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      confirmDeleteUser(uid) {
+        const u = DB.state.users.find(x => x.id === uid);
+        if (!u) return;
+        const body = `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px; border-radius: 12px; font-size: 0.84rem;">
+            هل أنت متأكد من حذف حساب المستخدم <strong>"${u.fullName}" (${u.username})</strong>؟
+          </div>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="button" onclick="UsersView.deleteUser('${uid}')" class="btn btn-danger btn-sm">تأكيد الحذف</button>
+        `;
+        UI.openModal('تأكيد حذف المستخدم', body, footer);
+      },
+
+      async deleteUser(uid) {
+        const u = DB.state.users.find(x => x.id === uid);
+        if (!u) return;
+        DB.state.users = DB.state.users.filter(x => x.id !== uid);
+        DB.logAction('حذف حساب المستخدم: ' + u.fullName);
+        await DB.commit();
+        UI.closeModal();
+        UI.toast('تم حذف المستخدم بنجاح', 'success');
+        AppRouter.render();
+      },
+
+      openSystemResetModal() {
+        if (!Auth.can('reset_system')) {
+          UI.toast('هذه الصلاحية متاحة لمدير النظام فقط', 'error');
+          return;
+        }
+        const body = `
+          <div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px; border-radius: 12px; font-size: 0.84rem;">
+            <strong>⚠️ تحذير هام:</strong> سيؤدي هذا الإجراء إلى مسح جميع أذون الاستلام والتسليم، وفواتير المشتريات، وسندات الدفع والشيكات، والمواقع، والموردين، وسجل الحركات من قاعدة البيانات المحلية والسحابية.
+          </div>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer;">
+            <input id="reset-users-checkbox" type="checkbox" />
+            <span>إعادة تعيين حسابات المستخدمين أيضاً إلى حساب (admin) الافتراضي فقط</span>
+          </label>
+          <div class="form-group">
+            <label class="form-label">لتأكيد العملية، اكتب كلمة <strong>تصفير</strong> في الخانة التالية:</label>
+            <input id="reset-confirm-input" type="text" class="form-control" placeholder="اكتب: تصفير" />
+          </div>
+        `;
+        const footer = `
+          <button type="button" onclick="UI.closeModal()" class="btn btn-outline btn-sm">إلغاء</button>
+          <button type="button" onclick="UsersView.executeSystemReset()" class="btn btn-danger btn-sm">تأكيد تصفير النظام الآن</button>
+        `;
+        UI.openModal('تصفير النظام بالكامل (مدير النظام)', body, footer);
+      },
+
+      async executeSystemReset() {
+        const val = (document.getElementById('reset-confirm-input')?.value || '').trim();
+        if (val !== 'تصفير') {
+          UI.toast('يرجى كتابة كلمة "تصفير" بشكل صحيح للتأكيد', 'error');
+          return;
+        }
+        const resetUsersAlso = Boolean(document.getElementById('reset-users-checkbox')?.checked);
+        await DB.resetSystem(resetUsersAlso);
+        Auth.refreshHeaderUser();
+        AppRouter.initNav();
+        UI.closeModal();
+        UI.toast('تم تصفير النظام بالكامل بنجاح!', 'success');
+        AppRouter.navigate('dashboard');
+      }
+    };
+
+    /**
+     * 17. VIEW 8: DATABASE SETTINGS (FIREBASE RTDB & FUTURE MIGRATION)
+     */
+    const DatabaseView = {
+      render() {
+        const cfg = DB.config;
+        return `
+          <div class="card" style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">
+              <div>
+                <h2 class="text-base font-extrabold">🗄️ إعدادات الربط مع Firebase وإمكانية تغيير قاعدة البيانات مستقبلاً</h2>
+                <p class="text-xs text-muted">النظام مربوط بقاعدة بيانات Firebase Realtime Database مع إمكانية التبديل لأي API مستقبلاً</p>
+              </div>
+              <button type="button" onclick="DB.syncNow()" class="btn btn-emerald btn-sm">↻ مزامنة الآن</button>
+            </div>
+
+            <form onsubmit="DatabaseView.saveSettings(event)" style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="grid-3">
+                <label class="card" style="cursor: pointer; border: 2px solid ${cfg.provider === 'firebase' ? '#1d4ed8' : '#e2e8f0'};">
+                  <input type="radio" name="db-provider" value="firebase" ${cfg.provider === 'firebase' ? 'checked' : ''} />
+                  <strong class="text-sm">Firebase Realtime DB</strong>
+                  <div class="text-xs text-muted" style="margin-top: 4px;">gas-track-7b0f3-default-rtdb</div>
+                </label>
+                <label class="card" style="cursor: pointer; border: 2px solid ${cfg.provider === 'custom_api' ? '#1d4ed8' : '#e2e8f0'};">
+                  <input type="radio" name="db-provider" value="custom_api" ${cfg.provider === 'custom_api' ? 'checked' : ''} />
+                  <strong class="text-sm">Custom REST API / SQL</strong>
+                  <div class="text-xs text-muted" style="margin-top: 4px;">للتبديل لأي سيرفر مستقبلاً</div>
+                </label>
+                <label class="card" style="cursor: pointer; border: 2px solid ${cfg.provider === 'local' ? '#1d4ed8' : '#e2e8f0'};">
+                  <input type="radio" name="db-provider" value="local" ${cfg.provider === 'local' ? 'checked' : ''} />
+                  <strong class="text-sm">تخزين محلي (Offline)</strong>
+                  <div class="text-xs text-muted" style="margin-top: 4px;">حفظ داخل المتصفح فقط</div>
+                </label>
+              </div>
+
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">رابط قاعدة بيانات Firebase (URL)</label>
+                  <input id="db-fb-url" type="text" dir="ltr" value="${cfg.firebaseUrl}" class="form-control font-mono" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Firebase Secret / Token (اختياري)</label>
+                  <input id="db-fb-token" type="password" dir="ltr" value="${cfg.firebaseToken}" class="form-control font-mono" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">رابط قاعدة البيانات البديلة مستقبلاً (Custom REST API)</label>
+                  <input id="db-api-url" type="text" dir="ltr" value="${cfg.customApiUrl}" class="form-control font-mono" placeholder="https://api.example.com/gastrack" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">مفتاح API Key (اختياري)</label>
+                  <input id="db-api-key" type="password" dir="ltr" value="${cfg.customApiKey}" class="form-control font-mono" />
+                </div>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+                <button type="button" onclick="DatabaseView.exportJson()" class="btn btn-outline btn-sm">⬇️ تصدير نسخة احتياطية JSON</button>
+                <button type="submit" class="btn btn-primary btn-sm">حفظ الإعدادات وتطبيق الاتصال</button>
+              </div>
+            </form>
+          </div>
+        `;
+      },
+
+      async saveSettings(e) {
+        e.preventDefault();
+        const provider = document.querySelector('input[name="db-provider"]:checked')?.value || 'firebase';
+        DB.saveConfig({
+          provider,
+          firebaseUrl: document.getElementById('db-fb-url').value,
+          firebaseToken: document.getElementById('db-fb-token').value,
+          customApiUrl: document.getElementById('db-api-url').value,
+          customApiKey: document.getElementById('db-api-key').value
+        });
+        DB.logAction('تحديث إعدادات الاتصال بقاعدة البيانات (' + provider + ')');
+        await DB.syncNow();
+        AppRouter.render();
+      },
+
+      exportJson() {
+        const blob = new Blob([JSON.stringify(DB.state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'redecam-gastrack-backup-' + new Date().toISOString().split('T')[0] + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        UI.toast('تم تصدير النسخة الاحتياطية بنجاح', 'success');
+      }
+    };
+
+    /**
+     * 18. APPLICATION BOOTSTRAP
+     */
+    window.addEventListener('DOMContentLoaded', async () => {
+      const loginSlot = document.getElementById('login-logo-slot');
+      const sidebarSlot = document.getElementById('sidebar-logo-slot');
+      const printSlot = document.getElementById('print-logo-slot');
+      if (loginSlot) loginSlot.innerHTML = renderRedecamLogo('dark');
+      if (sidebarSlot) sidebarSlot.innerHTML = renderRedecamLogo('dark');
+      if (printSlot) printSlot.innerHTML = renderRedecamLogo('light');
+
+      await DB.init();
+
+      const savedUid = sessionStorage.getItem('redecam_logged_uid_v3');
+      if (savedUid) {
+        const u = DB.state.users.find(x => x.id === savedUid && x.active);
+        if (u) {
+          Auth.currentUser = u;
+          document.getElementById('login-screen').classList.add('hidden');
+          document.getElementById('app-shell').classList.remove('hidden');
+          Auth.refreshHeaderUser();
+          AppRouter.initNav();
+          AppRouter.navigate('dashboard');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
